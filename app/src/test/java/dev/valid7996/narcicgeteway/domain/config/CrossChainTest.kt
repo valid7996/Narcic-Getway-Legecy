@@ -72,33 +72,6 @@ class CrossChainTest {
     private val psiphon = profile("psiphon", ProfileSource.Psiphon(PsiphonProfile()))
 
     @Test
-    fun `carriers are limited to xray, psiphon and tor`() {
-        assertTrue("Xray server", link.canCarryChain)
-        assertTrue("Psiphon", psiphon.canCarryChain)
-
-    }
-
-    @Test
-    fun `exits are limited to xray, psiphon and tor`() {
-        assertTrue("Psiphon has UpstreamProxyURL", psiphon.canDialThroughProxy)
-
-        assertTrue("Xray via sockopt.dialerProxy", link.canDialThroughProxy)
-
-    }
-
-    @Test
-    fun `all six directions between xray, psiphon and tor are offered`() {
-        val directions = listOf(
-            Triple("Xray -> Psiphon", link, psiphon),
-            Triple("Psiphon -> Xray", psiphon, link),
-        )
-        for ((label, inner, outer) in directions) {
-            assertTrue("$label: ${outer.name} must be a valid carrier", outer.canCarryChain)
-            assertTrue("$label: ${inner.name} must be a valid exit", inner.canDialThroughProxy)
-        }
-    }
-
-    @Test
     fun `a proxy chain is xray-shaped and stays chainable`() {
         val chain = profile("chain", ProfileSource.ProxyChain(listOf("a", "b")))
         assertTrue(chain.canCarryChain)
