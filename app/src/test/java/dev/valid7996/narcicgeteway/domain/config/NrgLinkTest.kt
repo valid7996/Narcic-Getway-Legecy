@@ -19,58 +19,14 @@ class NrgLinkTest {
     }
 
     @Test
-    fun `openconnect survives with every field it carries`() {
-        roundTrip(
-            "Work VPN",
-            ProfileSource.OpenConnect(
-                OpenConnectProfile(
-                    server = "https://vpn.example.com:8443/group",
-                    protocol = OpenConnectProfile.PROTO_ANYCONNECT,
-                    username = "staffuser",
-                    password = "s3cret",
-                    authgroup = "staff",
-                    mtu = 1400,
-                    disableDtls = true,
-                    formEntries = mapOf("secondary" to "1234"),
-                ),
-            ),
-        )
-    }
-
     @Test
     fun `ikev2 survives`() {
         roundTrip("Home", ProfileSource.Ikev2(Ikev2Profile(server = "vpn.example.com", username = "u", mtu = 1400)))
     }
 
     @Test
-    fun `ssh survives`() {
-        roundTrip(
-            "Box",
-            ProfileSource.Ssh(SshProfile(host = "example.com", port = 22, username = "root", password = "pw")),
-        )
-    }
-
     @Test
-    fun `tor is a data object and still round-trips`() {
-        roundTrip("Tor", ProfileSource.Tor)
-    }
-
     @Test
-    fun `dns tunnel survives`() {
-        roundTrip(
-            "DNSTT",
-            ProfileSource.DnsTunnel(
-                DnsTunnelProfile(
-                    engine = DnsTunnelProfile.ENGINE_DNSTT,
-                    domain = "t.example.com",
-                    publicKey = "abc123",
-                    resolvers = "8.8.8.8",
-                    dnsTransport = DnsTunnelProfile.TRANSPORT_TCP,
-                ),
-            ),
-        )
-    }
-
     @Test
     fun `a chain carries its members inside the link`() {
         val members = listOf(
@@ -87,11 +43,7 @@ class NrgLinkTest {
     @Test
     fun `handles claims exactly the sources with no community format`() {
         listOf(
-            ProfileSource.Tor,
-            ProfileSource.Ssh(SshProfile(host = "h")),
             ProfileSource.Ikev2(Ikev2Profile()),
-            ProfileSource.OpenConnect(OpenConnectProfile()),
-            ProfileSource.MasterDns(MasterDnsProfile()),
             ProfileSource.ProxyChain(emptyList()),
         ).forEach { assertTrue("$it should be handled", NrgLink.handles(it)) }
 
@@ -112,14 +64,6 @@ class NrgLinkTest {
     }
 
     @Test
-    fun `zedsecure links are rejected`() {
-        val legacy = NrgLink.build("Tor", ProfileSource.Tor)!!
-            .replaceFirst("narcicgeteway://", "zedsecure://")
-        assertFalse(NrgLink.isNrgLink(legacy))
-        assertNull(NrgLink.parse(legacy))
-    }
-
-
     @Test
     fun `a sealed profile exposes nothing`() {
         val p = VpnProfile(
@@ -136,11 +80,7 @@ class NrgLinkTest {
             transportLabel = "", source = src, addedAt = 0L,
         )
         listOf(
-            ProfileSource.Tor,
-            ProfileSource.Ssh(SshProfile(host = "h")),
             ProfileSource.Ikev2(Ikev2Profile(server = "s")),
-            ProfileSource.OpenConnect(OpenConnectProfile(server = "s")),
-            ProfileSource.MasterDns(MasterDnsProfile()),
             ProfileSource.Psiphon(PsiphonProfile()),
         ).forEach {
             assertNotNull("$it had no share payload", profile(it).rawPayload())

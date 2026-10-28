@@ -68,4 +68,3 @@
     native <methods>;
 }
 
--keep class com.therealaleph.mhrv.Native { *; }

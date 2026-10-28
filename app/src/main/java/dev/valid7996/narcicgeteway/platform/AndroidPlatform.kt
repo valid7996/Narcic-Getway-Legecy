@@ -198,54 +198,11 @@ class AndroidPlatform(
         mainHandler.post { Toast.makeText(context, message, Toast.LENGTH_SHORT).show() }
     }
 
-    override val supportsMhrvCa: Boolean get() = true
+    override val supportsMhrvCa: Boolean get() = false
 
-    override fun installMhrvCa(): String {
-        // 1. Export / ensure nrg-ca certificate
-        com.therealaleph.mhrv.CaInstall.export(context)
+    override fun installMhrvCa(): String = ""
 
-        // 2. Save PEM certificate directly to the Downloads folder
-        val downloadPath = com.therealaleph.mhrv.CaInstall.saveToDownloads(context, "nrg-ca.crt")
-            ?: return context.getString(dev.valid7996.narcicgeteway.R.string.mhrv_ca_install_failed)
-
-        // 3. Verify if already trusted in AndroidCAStore (strictly recognizes nrg-ca)
-        if (com.therealaleph.mhrv.CaInstall.isInstalled()) {
-            return context.getString(dev.valid7996.narcicgeteway.R.string.mhrv_ca_already_installed, downloadPath)
-        }
-
-        // 4. On Android < 11 (API < 30, e.g. Samsung J5), launch KeyChain install intent inline
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R) {
-            val installIntent = com.therealaleph.mhrv.CaInstall.buildInstallIntent(context)
-            if (installIntent != null) {
-                installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                val ok = runCatching {
-                    context.startActivity(installIntent)
-                    true
-                }.getOrDefault(false)
-                if (ok) {
-                    return context.getString(dev.valid7996.narcicgeteway.R.string.mhrv_ca_install_started_legacy, downloadPath)
-                }
-            }
-        }
-
-        // 5. On Android 11+ (API 30+), launch system Settings and guide user to pick the file from Downloads
-        return runCatching {
-            val settingsIntent = com.therealaleph.mhrv.CaInstall.buildSettingsIntent()
-            context.startActivity(settingsIntent)
-            context.getString(dev.valid7996.narcicgeteway.R.string.mhrv_ca_downloaded_settings, downloadPath)
-        }.getOrElse {
-            context.getString(dev.valid7996.narcicgeteway.R.string.mhrv_ca_downloaded_manual, downloadPath)
-        }
-    }
-
-    override suspend fun testSni(googleIp: String, sni: String): String =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                com.therealaleph.mhrv.Native.testSni(googleIp, sni)
-            }.getOrElse {
-                """{"ok":false,"error":"${it.message ?: "Failed"}"}"""
-            }
-        }
+    override suspend fun testSni(googleIp: String, sni: String): String = ""
 
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
 

@@ -56,9 +56,6 @@ class StartPlanner(context: Context) {
         }
         val effective = profile.resolveUnsealed() ?: profile
         effective.ikev2Settings()?.let { return Plan.Failure(appContext.getString(R.string.ikev2_requires_android11)) }
-        effective.mhrvRelaySettings()?.let {
-            if (!it.isValid) return Plan.Failure(appContext.getString(R.string.mhrv_missing_creds))
-        }
         val kind = engineKindOf(effective)
         val configJson = try {
             if (kind == VpnManager.KIND_CROSS_CHAIN) buildCrossChainWrapper(effective)
@@ -149,7 +146,6 @@ class StartPlanner(context: Context) {
                 })
             }.toString()
         }
-        if (profile.isTor) return "tor"
         (profile.source as? dev.valid7996.narcicgeteway.domain.config.ProfileSource.SingBoxConfig)?.let { src ->
 
             val s = settingsRepository.settings.value
@@ -159,11 +155,6 @@ class StartPlanner(context: Context) {
                 device = s.singBoxDeviceOptions(),
             ).json
         }
-        profile.sshSettings()?.let {
-            return kotlinx.serialization.json.Json.encodeToString(
-                dev.valid7996.narcicgeteway.domain.config.SshProfile.serializer(), it,
-            )
-        }
         profile.psiphonSettings()?.let { psiphon ->
             val dataDir = java.io.File(appContext.filesDir, "psiphon").apply { mkdirs() }
             return dev.valid7996.narcicgeteway.domain.config.PsiphonConfigBuilder.build(
@@ -171,21 +162,6 @@ class StartPlanner(context: Context) {
                 dataDirPath = dataDir.absolutePath,
                 socksPort = LocalPorts.PSIPHON_SOCKS,
                 httpPort = LocalPorts.PSIPHON_HTTP,
-            )
-        }
-        profile.masterDnsSettings()?.let {
-            return kotlinx.serialization.json.Json.encodeToString(
-                dev.valid7996.narcicgeteway.domain.config.MasterDnsProfile.serializer(), it,
-            )
-        }
-        profile.mhrvRelaySettings()?.let {
-            return kotlinx.serialization.json.Json.encodeToString(
-                dev.valid7996.narcicgeteway.domain.config.MhrvRelayProfile.serializer(), it,
-            )
-        }
-        profile.openConnectSettings()?.let {
-            return kotlinx.serialization.json.Json.encodeToString(
-                dev.valid7996.narcicgeteway.domain.config.OpenConnectProfile.serializer(), it,
             )
         }
         profile.aetherSettings()?.let { aether ->
@@ -204,32 +180,6 @@ class StartPlanner(context: Context) {
         profile.ikev2Settings()?.let {
             return kotlinx.serialization.json.Json.encodeToString(
                 dev.valid7996.narcicgeteway.domain.config.Ikev2Profile.serializer(), it,
-            )
-        }
-        profile.sstpSettings()?.let {
-            return kotlinx.serialization.json.Json.encodeToString(
-                dev.valid7996.narcicgeteway.domain.config.SstpProfile.serializer(), it,
-            )
-        }
-        profile.dnsTunnelSettings()?.let { dnsTunnel ->
-            val s = settingsRepository.settings.value
-            var effective = dnsTunnel
-
-            if (s.dnsGlobalResolverEnabled && s.dnsGlobalResolvers.isNotBlank()) {
-                effective = effective.copy(resolvers = s.dnsGlobalResolvers)
-            }
-
-            val workers = when (s.dnsWorkerMode) {
-                "two" -> 2; "three" -> 3; "five" -> 5; else -> 0
-            }
-            if (workers > 0) {
-                effective = effective.copy(
-                    resolverMode = dev.valid7996.narcicgeteway.domain.config.DnsTunnelProfile.MODE_ROUND_ROBIN,
-                    rrSpreadCount = workers,
-                )
-            }
-            return kotlinx.serialization.json.Json.encodeToString(
-                dev.valid7996.narcicgeteway.domain.config.DnsTunnelProfile.serializer(), effective,
             )
         }
         val geoReady = GeoAssetsRepository(appContext).allPresent()
@@ -255,15 +205,6 @@ class StartPlanner(context: Context) {
     private fun buildCrossChainWrapper(profile: VpnProfile): String {
         val (inner, outer) = configRepository.crossChainMembers(profile)
 
-        if (inner.isTor &&
-            !dev.valid7996.narcicgeteway.core.tor.TorConfigBuilder.supportsUpstreamProxy(
-                settingsRepository.settings.value,
-            )
-        ) {
-            throw dev.valid7996.narcicgeteway.data.config.CrossChainUnsupportedException(
-                dev.valid7996.narcicgeteway.data.config.CrossChainUnsupportedException.DIALER, inner.name,
-            )
-        }
         return org.json.JSONObject().apply {
             put("innerKind", engineKindOf(inner))
             put("inner", engineConfigOf(inner))

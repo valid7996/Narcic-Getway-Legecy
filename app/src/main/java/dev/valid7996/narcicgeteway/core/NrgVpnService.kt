@@ -231,10 +231,7 @@ class NrgVpnService : VpnService() {
 
         if (kind == VpnManager.KIND_SINGBOX) { startSingBox(configJson, settings); return }
 
-        val dnsInChain = kind == VpnManager.KIND_DNS_TUNNEL || kind == VpnManager.KIND_MASTERDNS ||
-            (kind == VpnManager.KIND_CROSS_CHAIN && crossChainHasDnsTunnel(configJson))
-        val tunMtu = if (dnsInChain) 1280
-        else settings.vpnMtu.coerceIn(1000, 9000)
+        val tunMtu = settings.vpnMtu.coerceIn(1000, 9000)
 
         val bypassLan = shouldBypassLan(settings, configJson, kind)
 
@@ -448,282 +445,6 @@ class NrgVpnService : VpnService() {
             if (o.optString("tag") == "proxy") return o
         }
         return arr.optJSONObject(0)
-    }
-
-        descriptor: ParcelFileDescriptor,
-        tunMtu: Int,
-        appSettings: AppSettings,
-    ) {
-        val sshProfile = try {
-            kotlinx.serialization.json.Json.decodeFromString(
-                dev.valid7996.narcicgeteway.domain.config.SshProfile.serializer(), configJson,
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "bad SSH config", e)
-            VpnManager.onError(getString(R.string.engine_invalid_config_ssh))
-            stopEverything(); return
-        }
-        scope.launch {
-            val controller = SshController(
-                profile = sshProfile,
-                cipher = appSettings.sshCipher,
-                compression = appSettings.sshCompression,
-                listenPort = LocalPorts.SSH,
-                maxListenPort = LocalPorts.SSH_MAX,
-            )
-            ssh = controller
-            val port = controller.start()
-            if (port < 0) {
-                VpnManager.onError(engineFailed(R.string.engine_failed_ssh, controller.lastError))
-                stopEverything(); return@launch
-            }
-            val dns = if (appSettings.remoteDnsMode == "custom") appSettings.remoteDnsPrimary.ifBlank { "8.8.8.8" } else "8.8.8.8"
-            val shim = SocksTunBridge("127.0.0.1", SHIM_PORT, "127.0.0.1", port, dnsHost = dns)
-            socksShim = shim
-            if (shim.start() && bridge(descriptor, SHIM_PORT, tunMtu, udpOverTcp = true)) {
-                finishConnected()
-            } else {
-                stopEverything()
-            }
-        }
-    }
-
-
-        descriptor: ParcelFileDescriptor,
-        tunMtu: Int,
-        appSettings: AppSettings,
-    ) {
-        val dnsProfile = try {
-            kotlinx.serialization.json.Json.decodeFromString(
-                dev.valid7996.narcicgeteway.domain.config.DnsTunnelProfile.serializer(), configJson,
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "bad DNS-tunnel config", e)
-            VpnManager.onError(getString(R.string.engine_invalid_config_dnstunnel))
-            stopEverything(); return
-        }
-        val pool = if (appSettings.dnsPoolEnabled) {
-            appSettings.dnsPoolText.split('\n', ',').map { it.trim() }
-                .filter { it.isNotEmpty() && !it.startsWith("#") }
-        } else emptyList()
-        val controller = DnsTunnelController(
-            dnsProfile,
-            listenPort = LocalPorts.DNS_TUNNEL,
-            maxListenPort = LocalPorts.DNS_TUNNEL_MAX,
-            pool = pool,
-            poolFullVerification = appSettings.dnsPoolFullVerification,
-        )
-        dnsTunnel = controller
-        val port = controller.start()
-        if (port < 0) {
-            VpnManager.onError(engineFailed(R.string.engine_failed_dnstunnel, controller.lastError))
-            stopEverything(); return
-        }
-
-        val upstreamPort = if (dnsProfile.sshEnabled) {
-            val directSsh = dnsProfile.sshHost.isBlank() ||
-                dnsProfile.sshHost == "127.0.0.1" ||
-                dnsProfile.sshHost == "localhost" ||
-                dnsProfile.sshHost.equals(dnsProfile.domain.trim(), ignoreCase = true)
-
-            val sshProfile = dev.valid7996.narcicgeteway.domain.config.SshProfile(
-                host = if (directSsh) "127.0.0.1" else dnsProfile.sshHost,
-                port = if (directSsh) port else dnsProfile.sshPort,
-                username = dnsProfile.sshUsername,
-                authType = dnsProfile.sshAuthType,
-                password = dnsProfile.sshPassword,
-                privateKey = dnsProfile.sshPrivateKey,
-                keyPassphrase = dnsProfile.sshKeyPassphrase,
-            )
-            val sshController = SshController(
-                profile = sshProfile,
-                cipher = appSettings.sshCipher,
-                compression = appSettings.sshCompression,
-                listenPort = LocalPorts.SSH_OVER_DNS,
-                maxListenPort = LocalPorts.SSH_OVER_DNS_MAX,
-                proxySocksHost = if (directSsh) null else "127.0.0.1",
-                proxySocksPort = if (directSsh) 0 else port,
-                proxySocksUser = if (directSsh) "" else dnsProfile.socksUser,
-                proxySocksPass = if (directSsh) "" else dnsProfile.socksPass,
-            )
-            ssh = sshController
-            val sshPort = sshController.start()
-            if (sshPort < 0) {
-                VpnManager.onError(engineFailed(R.string.engine_failed_ssh_over_dns, sshController.lastError))
-                stopEverything(); return
-            }
-            Log.i(TAG, "DNS+SSH: SSH SOCKS on $sshPort (via DNS tunnel $port)")
-            sshPort
-        } else {
-            port
-        }
-
-        val dns = if (appSettings.remoteDnsMode == "custom") appSettings.remoteDnsPrimary.ifBlank { "8.8.8.8" } else "8.8.8.8"
-        val shim = SocksTunBridge("127.0.0.1", SHIM_PORT, "127.0.0.1", upstreamPort, dnsHost = dns)
-        socksShim = shim
-        if (!shim.start() || !bridge(descriptor, SHIM_PORT, tunMtu, udpOverTcp = true)) {
-            stopEverything(); return
-        }
-
-        val ready = TunnelReadiness.verify(SHIM_PORT, timeoutMs = 8_000, attempts = 1)
-        if (!ready) {
-            Log.w(TAG, "DNS tunnel: HTTP probe timed out (likely port 80 filtered or high latency), proceeding with connection")
-        }
-        finishConnected()
-    }
-
-        descriptor: ParcelFileDescriptor,
-        tunMtu: Int,
-        appSettings: AppSettings,
-    ) {
-        val profile = try {
-            kotlinx.serialization.json.Json.decodeFromString(
-                dev.valid7996.narcicgeteway.domain.config.MasterDnsProfile.serializer(), configJson,
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "bad MasterDNS config", e)
-            VpnManager.onError(getString(R.string.engine_invalid_config_masterdns))
-            stopEverything(); return
-        }
-
-        val effective = if (appSettings.dnsGlobalResolverEnabled && appSettings.dnsGlobalResolvers.isNotBlank()) {
-            profile.copy(resolvers = appSettings.dnsGlobalResolvers)
-        } else profile
-        val pool = if (appSettings.dnsPoolEnabled) {
-            appSettings.dnsPoolText.split('\n', ',').map { it.trim() }
-                .filter { it.isNotEmpty() && !it.startsWith("#") }
-        } else emptyList()
-        val controller = MasterDnsController(
-            effective, filesDir,
-            listenPort = LocalPorts.MASTER_DNS,
-            maxListenPort = LocalPorts.MASTER_DNS_MAX,
-            pool = pool,
-            poolFullVerification = appSettings.dnsPoolFullVerification,
-        )
-        masterDns = controller
-        val port = controller.start()
-        if (port < 0) {
-            if (controller.stopped) return
-            VpnManager.onError(masterDnsError(controller))
-            stopEverything(); return
-        }
-
-        if (!controller.awaitReady(MASTERDNS_IDLE_TIMEOUT_MS, MASTERDNS_MAX_WAIT_MS)) {
-            if (controller.stopped) return
-            VpnManager.onError(masterDnsError(controller))
-            stopEverything(); return
-        }
-        val dns = if (appSettings.remoteDnsMode == "custom") appSettings.remoteDnsPrimary.ifBlank { "8.8.8.8" } else "8.8.8.8"
-        val shim = SocksTunBridge("127.0.0.1", SHIM_PORT, "127.0.0.1", port, dnsHost = dns)
-        socksShim = shim
-        if (shim.start() && bridge(descriptor, SHIM_PORT, tunMtu, udpOverTcp = true)) {
-            finishConnected()
-        } else {
-            stopEverything()
-        }
-    }
-
-        descriptor: ParcelFileDescriptor,
-        tunMtu: Int,
-        appSettings: AppSettings,
-    ) {
-        val rawProfile = try {
-            kotlinx.serialization.json.Json.decodeFromString(
-                dev.valid7996.narcicgeteway.domain.config.MhrvRelayProfile.serializer(), configJson,
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "bad MHRV relay config", e)
-            VpnManager.onError(getString(R.string.mhrv_invalid_config))
-            stopEverything(); return
-        }
-        val profile = if (rawProfile.blockDoh) rawProfile.copy(blockDoh = false) else rawProfile
-        val controller = MhrvRelayController(
-            profile, filesDir,
-            httpPort = LocalPorts.MHRV_HTTP,
-            socksPort = LocalPorts.MHRV_SOCKS,
-        )
-        mhrv = controller
-        if (!controller.start()) {
-            VpnManager.onError(
-                if (controller.missingCredentials) getString(R.string.mhrv_missing_creds)
-                else getString(R.string.mhrv_failed_reason, controller.failure.orEmpty().take(200)),
-            )
-            stopEverything(); return
-        }
-        if (!controller.awaitReady(MHRV_READY_TIMEOUT_MS)) {
-            VpnManager.onError(getString(R.string.mhrv_no_socks))
-            stopEverything(); return
-        }
-
-        val dns = if (appSettings.remoteDnsMode == "custom") appSettings.remoteDnsPrimary.ifBlank { "8.8.8.8" } else "8.8.8.8"
-        val shim = SocksTunBridge("127.0.0.1", SHIM_PORT, "127.0.0.1", controller.socksPort, dnsHost = dns, useDoh = true)
-        socksShim = shim
-        if (!shim.start() || !bridge(descriptor, SHIM_PORT, tunMtu, udpOverTcp = true)) {
-            stopEverything(); return
-        }
-
-        // Non-blocking readiness check: port 80 plaintext may be censored or redirected on some networks,
-        // so we log a warning instead of aborting the connection if the probe times out.
-        if (profile.mode != dev.valid7996.narcicgeteway.domain.config.MhrvRelayProfile.MODE_DIRECT) {
-            val ready = TunnelReadiness.verify(SHIM_PORT, timeoutMs = 4_000, attempts = 1)
-            if (!ready) {
-                Log.w(TAG, "MHRV relay: HTTP probe timed out (likely port 80 filtered), proceeding with connection")
-            }
-        }
-        finishConnected()
-    }
-
-
-        VpnManager.setActiveKind(kind)
-        val profile = try {
-            kotlinx.serialization.json.Json.decodeFromString(
-                dev.valid7996.narcicgeteway.domain.config.OpenConnectProfile.serializer(), configJson,
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "bad OpenConnect config", e)
-            VpnManager.onError(getString(R.string.engine_invalid_config_openconnect))
-            stopEverything(); return
-        }
-        val controller = OpenConnectController(
-            service = this,
-            profile = profile,
-            filesDir = filesDir,
-            onLog = { level, msg -> Log.println(if (level <= 0) Log.ERROR else Log.INFO, TAG, msg) },
-
-            configureBuilder = { b -> b.applyAppRules(appSettings, selfInTunnel = true) },
-
-            fallbackDns = appSettings.vpnDns.split(',', ' ').map { it.trim() }.filter { it.isNotEmpty() },
-            onUp = { finishConnected() },
-            onDown = { reason -> onTunnelFailed(reason) },
-        )
-        openConnect = controller
-        if (!controller.start()) stopEverything()
-    }
-
-        VpnManager.setActiveKind(kind)
-        advance(VpnNotifications.Stage.Engine)
-        val profile = try {
-            kotlinx.serialization.json.Json.decodeFromString(
-                dev.valid7996.narcicgeteway.domain.config.SstpProfile.serializer(), configJson,
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "bad SSTP config", e)
-            VpnManager.onError("Invalid SSTP config: ${e.message}")
-            stopEverything(); return
-        }
-        val controller = dev.valid7996.narcicgeteway.core.sstp.SstpController(
-            service = this,
-            profile = profile,
-            configureBuilder = { b -> b.applyAppRules(appSettings, selfInTunnel = true) },
-            fallbackDns = appSettings.vpnDns.split(',', ' ').map { it.trim() }.filter { it.isNotEmpty() },
-            onUp = {
-                advance(VpnNotifications.Stage.Tunnel)
-                finishConnected()
-            },
-            onDown = { reason -> onTunnelFailed(reason) },
-        )
-        sstp = controller
-        if (!controller.start()) stopEverything()
     }
 
     private fun startSingBox(configJson: String, appSettings: AppSettings) {
@@ -1235,8 +956,6 @@ class NrgVpnService : VpnService() {
 
                     else -> when (crossInnerKind) {
                         VpnManager.KIND_PSIPHON -> uidTrafficDelta()
-                        VpnManager.KIND_DNS_TUNNEL, VpnManager.KIND_MASTERDNS,
-                            socksShim?.readDelta() ?: (0L to 0L)
                         else -> XrayController.readTrafficDelta()
                     }
                 }
@@ -1486,15 +1205,6 @@ class NrgVpnService : VpnService() {
         }
     }
 
-    private fun armTorBootstrapDeadline(bridged: java.util.concurrent.atomic.AtomicBoolean) {
-        scope.launch {
-            kotlinx.coroutines.delay(TOR_BOOTSTRAP_TIMEOUT_MS)
-            if (!bridged.get() && VpnManager.status.value.state.isTransitioning) {
-                LogBus.append("E/Tor bootstrap timed out after ${TOR_BOOTSTRAP_TIMEOUT_MS / 1000}s")
-                onTunnelFailed(getString(R.string.tor_bootstrap_timeout))
-            }
-        }
-    }
 
     private fun ensureKillSwitchTun(): Boolean {
         if (tun != null) return true
@@ -1567,11 +1277,6 @@ class NrgVpnService : VpnService() {
         }
     }
 
-    private fun crossChainHasDnsTunnel(wrapper: String): Boolean = runCatching {
-        val o = JSONObject(wrapper)
-        val dns = setOf(VpnManager.KIND_DNS_TUNNEL, VpnManager.KIND_MASTERDNS)
-        o.optString("innerKind") in dns || o.optString("outerKind") in dns
-    }.getOrDefault(false)
 
     private fun engineAlive(k: String?, outer: Boolean): Boolean = when (k) {
         VpnManager.KIND_PSIPHON -> (if (outer) outerPsiphon else psiphon)?.isRunning == true
@@ -1629,55 +1334,6 @@ class NrgVpnService : VpnService() {
                 outerPsiphon = c
                 if (!c.start()) { onReady(-1) }
             }
-                val bridged = java.util.concurrent.atomic.AtomicBoolean(false)
-                val c = dev.valid7996.narcicgeteway.core.tor.TorController(
-                    context = this,
-                    settings = settings,
-                    onBootstrapped = {
-                        if (bridged.compareAndSet(false, true)) {
-                            onReady(dev.valid7996.narcicgeteway.core.tor.TorConfigBuilder.SOCKS_PORT)
-                        }
-                    },
-                    onProgress = { pct -> LogBus.append("I/Tor bootstrap $pct%") },
-                    onStopped = { reason -> onTunnelFailed(reason) },
-                )
-                outerTor = c
-                if (!c.start()) onReady(-1) else armTorBootstrapDeadline(bridged)
-            }
-                val p = runCatching {
-                    kotlinx.serialization.json.Json.decodeFromString(
-                        dev.valid7996.narcicgeteway.domain.config.SshProfile.serializer(), config,
-                    )
-                }.getOrNull() ?: return onReady(-1)
-                scope.launch {
-                    val c = SshController(
-                        profile = p,
-                        cipher = settings.sshCipher,
-                        compression = settings.sshCompression,
-                        listenPort = LocalPorts.SSH,
-                        maxListenPort = LocalPorts.SSH_MAX,
-                    )
-                    outerSsh = c
-                    onReady(c.start())
-                }
-            }
-                val p = runCatching {
-                    kotlinx.serialization.json.Json.decodeFromString(
-                        dev.valid7996.narcicgeteway.domain.config.DnsTunnelProfile.serializer(), config,
-                    )
-                }.getOrNull() ?: return onReady(-1)
-                scope.launch {
-                    val c = DnsTunnelController(
-                        p,
-                        listenPort = LocalPorts.DNS_TUNNEL,
-                        maxListenPort = LocalPorts.DNS_TUNNEL_MAX,
-                        pool = dnsPoolOf(settings),
-                        poolFullVerification = settings.dnsPoolFullVerification,
-                    )
-                    outerDnsTunnel = c
-                    onReady(c.start())
-                }
-            }
 
             else -> {
                 if (!XrayController.start(config)) {
@@ -1698,81 +1354,7 @@ class NrgVpnService : VpnService() {
         tunMtu: Int,
         settings: AppSettings,
     ) {
-        val dns = if (settings.remoteDnsMode == "custom") {
-            settings.remoteDnsPrimary.ifBlank { "8.8.8.8" }
-        } else "8.8.8.8"
-
-        fun bridgeThroughShim(upstreamPort: Int) {
-            if (upstreamPort <= 0) {
-                VpnManager.onError(getString(R.string.crosschain_inner_failed)); stopEverything(); return
-            }
-            val shim = SocksTunBridge("127.0.0.1", LocalPorts.SHIM, "127.0.0.1", upstreamPort, dnsHost = dns)
-            socksShim = shim
-            if (shim.start() && bridge(descriptor, LocalPorts.SHIM, tunMtu, udpOverTcp = true)) {
-                finishConnected()
-            } else {
-                stopEverything()
-            }
-        }
-
         when (innerKind) {
-                val p = runCatching {
-                    kotlinx.serialization.json.Json.decodeFromString(
-                        dev.valid7996.narcicgeteway.domain.config.DnsTunnelProfile.serializer(), config,
-                    )
-                }.getOrNull()
-                if (p == null) { VpnManager.onError(getString(R.string.config_invalid)); stopEverything(); return }
-                scope.launch {
-                    val c = DnsTunnelController(
-                        p,
-                        listenPort = LocalPorts.DNS_TUNNEL,
-                        maxListenPort = LocalPorts.DNS_TUNNEL_MAX,
-                        pool = dnsPoolOf(settings),
-                        poolFullVerification = settings.dnsPoolFullVerification,
-                        upstreamSocks = "127.0.0.1:$carrierPort",
-                        upstreamSocksUser = "",
-                        upstreamSocksPass = "",
-                    )
-                    dnsTunnel = c
-                    bridgeThroughShim(c.start())
-                }
-            }
-                val p = runCatching {
-                    kotlinx.serialization.json.Json.decodeFromString(
-                        dev.valid7996.narcicgeteway.domain.config.SshProfile.serializer(), config,
-                    )
-                }.getOrNull()
-                if (p == null) { VpnManager.onError(getString(R.string.config_invalid)); stopEverything(); return }
-                scope.launch {
-                    val c = SshController(
-                        profile = p,
-                        cipher = settings.sshCipher,
-                        compression = settings.sshCompression,
-                        listenPort = LocalPorts.SSH_OVER_DNS,
-                        maxListenPort = LocalPorts.SSH_OVER_DNS_MAX,
-                        proxySocksHost = "127.0.0.1",
-                        proxySocksPort = carrierPort,
-                    )
-                    ssh = c
-                    bridgeThroughShim(c.start())
-                }
-            }
-                val bridged = java.util.concurrent.atomic.AtomicBoolean(false)
-                val c = dev.valid7996.narcicgeteway.core.tor.TorController(
-                    context = this,
-                    settings = settings,
-                    onBootstrapped = {
-                        if (bridged.compareAndSet(false, true)) {
-                            bridgeThroughShim(dev.valid7996.narcicgeteway.core.tor.TorConfigBuilder.SOCKS_PORT)
-                        }
-                    },
-                    onProgress = { pct -> LogBus.append("I/Tor bootstrap $pct%") },
-                    onStopped = { reason -> onTunnelFailed(reason) },
-                    upstreamSocksPort = carrierPort,
-                )
-                tor = c
-                if (!c.start()) stopEverything() else armTorBootstrapDeadline(bridged)
-            }
             VpnManager.KIND_PSIPHON -> {
                 val patched = runCatching {
                     dev.valid7996.narcicgeteway.domain.config.PsiphonConfigBuilder
@@ -1819,12 +1401,6 @@ class NrgVpnService : VpnService() {
             }
         }
     }
-
-    private fun dnsPoolOf(settings: AppSettings): List<String> =
-        if (settings.dnsPoolEnabled) {
-            settings.dnsPoolText.split('\n', ',').map { it.trim() }
-                .filter { it.isNotEmpty() && !it.startsWith("#") }
-        } else emptyList()
 
     companion object {
         private const val TAG = "NrgVpnService"

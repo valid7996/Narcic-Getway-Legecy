@@ -78,7 +78,6 @@
                 <data android:scheme="socks5" />
                 <data android:scheme="snispoof" />
                 <data android:scheme="aether" />
-                <data android:scheme="sstp" />
                 <data android:scheme="nrg" />
                 <data android:scheme="zsx" />
             </intent-filter>

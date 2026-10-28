@@ -50,7 +50,6 @@ class AutoSelectRepositoryTest {
     fun `locked and managed profiles never join a group`() {
         val repo = ConfigRepository(InMemoryKeyValueStore())
         repo.importText(link("a.example")).getOrThrow()
-        repo.addTor("Tor")
         assertEquals(listOf("a.example"), repo.autoSelectMembers(null).map { it.name })
     }
 

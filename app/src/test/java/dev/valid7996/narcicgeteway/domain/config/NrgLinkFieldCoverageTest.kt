@@ -47,43 +47,15 @@ class NrgLinkFieldCoverageTest {
     }
 
     @Test
-    fun `openconnect carries every field`() =
-        assertAllFieldsPresent("OpenConnectProfile.kt", "OpenConnectProfile", ProfileSource.OpenConnect(OpenConnectProfile()))
-
     @Test
     fun `ikev2 carries every field`() =
         assertAllFieldsPresent("Ikev2Profile.kt", "Ikev2Profile", ProfileSource.Ikev2(Ikev2Profile()))
 
     @Test
-    fun `ssh carries every field`() =
-        assertAllFieldsPresent("SshProfile.kt", "SshProfile", ProfileSource.Ssh(SshProfile(host = "h")))
-
     @Test
-    fun `dns tunnel carries every field`() = assertAllFieldsPresent(
-        "DnsTunnelProfile.kt", "DnsTunnelProfile",
-        ProfileSource.DnsTunnel(DnsTunnelProfile(engine = DnsTunnelProfile.ENGINE_DNSTT, domain = "d", publicKey = "k")),
-    )
-
     @Test
-    fun `masterdns carries every field`() =
-        assertAllFieldsPresent("MasterDnsProfile.kt", "MasterDnsProfile", ProfileSource.MasterDns(MasterDnsProfile()))
-
     @Test
     fun `psiphon carries every field`() =
         assertAllFieldsPresent("PsiphonProfile.kt", "PsiphonProfile", ProfileSource.Psiphon(PsiphonProfile()))
 
     @Test
-    fun `a fully populated openconnect profile is byte-for-byte identical after a round trip`() {
-        val p = OpenConnectProfile(
-            server = "https://vpn.example.com:8443/grp", protocol = OpenConnectProfile.PROTO_PULSE,
-            username = "u", password = "p", authgroup = "g", caCertPem = "CA", serverCertSha256 = "sha256:x",
-            clientCertPem = "CERT", clientKeyPem = "KEY", clientKeyPassword = "kp", userAgent = "UA",
-            reportedOs = "win", tokenMode = OpenConnectProfile.TOKEN_TOTP, tokenSecret = "seed",
-            disableDtls = true, clientCertP12Base64 = "p12", sni = "front.example.com", mtu = 1300,
-            reconnectTimeoutSec = 42, proxy = "socks5://127.0.0.1:1080", proxyAuth = "basic",
-            disableIpv6 = true, formEntries = mapOf("a" to "b"),
-        )
-        val back = NrgLink.parse(NrgLink.build("n", ProfileSource.OpenConnect(p))!!)!!
-        assertTrue("every field must survive", (back.source as ProfileSource.OpenConnect).settings == p)
-    }
-}

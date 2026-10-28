@@ -45,14 +45,13 @@ class ActiveConnectionHealthTest {
         listOf(VpnManager.KIND_XRAY, VpnManager.KIND_SNISPOOF, VpnManager.KIND_CROSS_CHAIN, null)
             .forEach { assertTrue("$it", PingService.runsXrayCore(it)) }
         listOf(
-            VpnManager.KIND_OPENCONNECT, VpnManager.KIND_IKEV2, VpnManager.KIND_TOR, VpnManager.KIND_PSIPHON,
-            VpnManager.KIND_SSH, VpnManager.KIND_SINGBOX, VpnManager.KIND_DNS_TUNNEL, VpnManager.KIND_MASTERDNS,
+            VpnManager.KIND_IKEV2, VpnManager.KIND_PSIPHON, VpnManager.KIND_SINGBOX,
         ).forEach { assertFalse(it, PingService.runsXrayCore(it)) }
     }
 
     @Test
-    fun `an IKEv2 or OpenConnect session is measured with a real request, not the idle core`() = runBlocking<Unit> {
-        for (kind in listOf(VpnManager.KIND_IKEV2, VpnManager.KIND_OPENCONNECT)) {
+    fun `an IKEv2 session is measured with a real request, not the idle core`() = runBlocking<Unit> {
+        for (kind in listOf(VpnManager.KIND_IKEV2)) {
             VpnManager.setActiveKind(kind)
             val health = PingService.activeConnectionHealth(probeUrl)
             assertTrue("$kind: ${health.error}", health.ok)
@@ -70,7 +69,7 @@ class ActiveConnectionHealthTest {
 
     @Test
     fun `a session without the core whose requests fail still reports a fault`() = runBlocking<Unit> {
-        VpnManager.setActiveKind(VpnManager.KIND_TOR)
+        VpnManager.setActiveKind(VpnManager.KIND_PSIPHON)
 
         VpnManager.activeSocksPort = java.net.ServerSocket(0).use { it.localPort }
         val health = PingService.activeConnectionHealth(probeUrl)

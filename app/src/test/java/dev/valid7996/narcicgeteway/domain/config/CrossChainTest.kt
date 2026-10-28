@@ -70,15 +70,9 @@ class CrossChainTest {
         ProfileSource.Link("vless://11111111-1111-1111-1111-111111111111@a.example:443?encryption=none&security=tls&type=tcp#A"),
     )
     private val psiphon = profile("psiphon", ProfileSource.Psiphon(PsiphonProfile()))
-    private val tor = profile("tor", ProfileSource.Tor)
-    private val ssh = profile("ssh", ProfileSource.Ssh(SshProfile(host = "h", port = 22, username = "u")))
-    private val dnstt = profile(
         "dnstt",
-        ProfileSource.DnsTunnel(DnsTunnelProfile(engine = DnsTunnelProfile.ENGINE_DNSTT, domain = "d", publicKey = "k")),
     )
-    private val vaydns = profile(
         "vaydns",
-        ProfileSource.DnsTunnel(DnsTunnelProfile(engine = DnsTunnelProfile.ENGINE_VAYDNS, domain = "d", publicKey = "k")),
     )
     private val ikev2 = profile("ikev2", ProfileSource.Ikev2(Ikev2Profile(server = "s")))
 
@@ -86,10 +80,6 @@ class CrossChainTest {
     fun `carriers are limited to xray, psiphon and tor`() {
         assertTrue("Xray server", link.canCarryChain)
         assertTrue("Psiphon", psiphon.canCarryChain)
-        assertTrue("Tor", tor.canCarryChain)
-        assertFalse("SSH is capable but not offered", ssh.canCarryChain)
-        assertFalse("DNSTT is capable but not offered", dnstt.canCarryChain)
-        assertFalse("VayDNS is capable but not offered", vaydns.canCarryChain)
 
         assertFalse("IKEv2", ikev2.canCarryChain)
     }
@@ -97,13 +87,9 @@ class CrossChainTest {
     @Test
     fun `exits are limited to xray, psiphon and tor`() {
         assertTrue("Psiphon has UpstreamProxyURL", psiphon.canDialThroughProxy)
-        assertTrue("Tor has Socks5Proxy", tor.canDialThroughProxy)
 
         assertTrue("Xray via sockopt.dialerProxy", link.canDialThroughProxy)
-        assertFalse("SSH is capable but not offered", ssh.canDialThroughProxy)
-        assertFalse("DNSTT is capable but not offered", dnstt.canDialThroughProxy)
 
-        assertFalse("VayDNS", vaydns.canDialThroughProxy)
         assertFalse("IKEv2", ikev2.canDialThroughProxy)
     }
 
@@ -112,10 +98,6 @@ class CrossChainTest {
         val directions = listOf(
             Triple("Xray -> Psiphon", link, psiphon),
             Triple("Psiphon -> Xray", psiphon, link),
-            Triple("Xray -> Tor", link, tor),
-            Triple("Tor -> Xray", tor, link),
-            Triple("Tor -> Psiphon", tor, psiphon),
-            Triple("Psiphon -> Tor", psiphon, tor),
         )
         for ((label, inner, outer) in directions) {
             assertTrue("$label: ${outer.name} must be a valid carrier", outer.canCarryChain)
@@ -135,7 +117,6 @@ class CrossChainTest {
     fun `only Xray and Psiphon relay UDP for an exit`() {
         assertTrue("Xray inbound is udp:true", link.carrierRelaysUdp)
         assertTrue("Psiphon SOCKS does UDP ASSOCIATE", psiphon.carrierRelaysUdp)
-        assertFalse("Tor SOCKS is CONNECT-only", tor.carrierRelaysUdp)
     }
 
     @Test
