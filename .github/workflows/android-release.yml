@@ -263,15 +263,19 @@ jobs:
             echo "Release $TAG exists, uploading files..."
             gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
           else
+            cat << 'EOF' | sed -e 's/^[ \t]*//' > /tmp/release_notes.md
+            ### 🛡️ Narcic Gateway Legacy v__V__ (Android 6+)
+
+            نسخه ویژه نرسیس گیت‌وی برای دستگاه‌های اندروید قدیمی‌تر (اندروید ۶ به بالا - API 23+)
+
+            - **NarcicGetway-__V__-universal.apk**: نسخه کامل شامل هر دو معماری ARM
+            - **NarcicGetway-__V__-arm64-v8a.apk**: برای دستگاه‌های ۶۴ بیتی
+            - **NarcicGetway-__V__-armeabi-v7a.apk**: برای دستگاه‌های ۳۲ بیتی
+            - **NarcicGetway-__V__-x86_64.apk**: برای شبیه‌سازها و پردازنده‌های x86_64
+            - **نسخه‌های clean**: نسخه‌های بدون سابسکریپشن‌های پیش‌فرض
+            EOF
+            sed -i "s/__V__/$V/g" /tmp/release_notes.md
             gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" \
               --title "Narcic Gateway Legacy $V" \
-              --notes "### 🛡️ Narcic Gateway Legacy v$V (Android 6+)
-
-نسخه ویژه نرسیس گیت‌وی برای دستگاه‌های اندروید قدیمی‌تر (اندروید ۶ به بالا - API 23+)
-
-- **NarcicGetway-$V-universal.apk**: نسخه کامل شامل هر دو معماری ARM
-- **NarcicGetway-$V-arm64-v8a.apk**: برای دستگاه‌های ۶۴ بیتی
-- **NarcicGetway-$V-armeabi-v7a.apk**: برای دستگاه‌های ۳۲ بیتی
-- **NarcicGetway-$V-x86_64.apk**: برای شبیه‌سازها و پردازنده‌های x86_64
-- **نسخه‌های clean**: نسخه‌های بدون سابسکریپشن‌های پیش‌فرض"
+              --notes-file /tmp/release_notes.md
           fi
