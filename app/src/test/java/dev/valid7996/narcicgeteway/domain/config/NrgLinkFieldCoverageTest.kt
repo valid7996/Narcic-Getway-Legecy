@@ -40,9 +40,9 @@ class NrgLinkFieldCoverageTest {
         val fields = fieldsOf(file, className)
 
         assertTrue("$className: no fields parsed — the extractor is broken", fields.size >= 3)
-        val missing = fields.filterNot { json.contains(""$it"") }
+        val missing = fields.filterNot { json.contains("\"$it\"") }
         assertTrue("$className is missing from the share link: $missing", missing.isEmpty())
-        assertTrue("the check has no teeth", !json.contains(""bogusFieldXyz""))
+        assertTrue("the check has no teeth", !json.contains("bogusFieldXyz"))
     }
 
     @Test
