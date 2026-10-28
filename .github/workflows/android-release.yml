@@ -178,7 +178,7 @@ jobs:
             "$BT/apksigner" sign --ks release.keystore \
               --ks-key-alias "$(grep '^keyAlias=' keystore.properties | cut -d= -f2-)" \
               --ks-pass env:STORE_PW --key-pass env:KEY_PW \
-              --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false \
+              --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled false \
               --out "dist/NarcicGetway-$V-universal.apk" /tmp/universal-aligned.apk
           else
             # No signing secrets: sign with the debug keystore committed in the repo
@@ -188,7 +188,7 @@ jobs:
             "$BT/apksigner" sign --ks "$KS_FILE" --ks-type PKCS12 \
               --ks-key-alias "$(grep '^keyAlias=' keystore.properties | cut -d= -f2-)" \
               --ks-pass env:STORE_PW --key-pass env:KEY_PW \
-              --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false \
+              --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled false \
               --out "dist/NarcicGetway-$V-universal.apk" /tmp/universal-aligned.apk
           fi
           rm -f /tmp/universal.apk /tmp/universal-aligned.apk
@@ -208,7 +208,7 @@ jobs:
             "$BT/apksigner" sign --ks release.keystore \
               --ks-key-alias "$(grep '^keyAlias=' keystore.properties | cut -d= -f2-)" \
               --ks-pass env:STORE_PW --key-pass env:KEY_PW \
-              --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false \
+              --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled false \
               --out "dist/NarcicGetway-$V-universal-clean.apk" /tmp/universal-clean-aligned.apk
           else
             KS_FILE="$(grep '^storeFile=' keystore.properties | cut -d= -f2-)"
@@ -217,7 +217,7 @@ jobs:
             "$BT/apksigner" sign --ks "$KS_FILE" --ks-type PKCS12 \
               --ks-key-alias "$(grep '^keyAlias=' keystore.properties | cut -d= -f2-)" \
               --ks-pass env:STORE_PW --key-pass env:KEY_PW \
-              --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false \
+              --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled false \
               --out "dist/NarcicGetway-$V-universal-clean.apk" /tmp/universal-clean-aligned.apk
           fi
           rm -f /tmp/universal-clean.apk /tmp/universal-clean-aligned.apk
@@ -233,7 +233,7 @@ jobs:
           "$BT/aapt2" dump badging "dist/NarcicGetway-$V-universal-clean.apk" | grep -q "native-code: 'arm64-v8a' 'armeabi-v7a'" \
             || { echo "::error::the universal clean APK does not carry both ARM ABIs"; exit 1; }
           ( cd dist && sha256sum NarcicGetway-*.apk > SHA256SUMS-android.txt )
-          "$JAVA_HOME/bin/keytool" -printcert -jarfile "dist/NarcicGetway-$V-arm64-v8a.apk" | grep -E 'Owner|SHA-256' | head -2
+          "$JAVA_HOME/bin/keytool" -printcert -jarfile "dist/NarcicGetway-$V-arm64-v8a.apk" | grep -E 'Owner|SHA-256' | head -2 || true
           ls -l dist
 
       - name: Forget the key

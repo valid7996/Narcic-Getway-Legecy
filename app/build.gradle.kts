@@ -45,6 +45,8 @@ android {
                 keyAlias = keystoreProperties["keyAlias"] as String
                 keyPassword = keystoreProperties["keyPassword"] as String
                 (keystoreProperties["storeType"] as String?)?.let { storeType = it }
+                enableV1Signing = true
+                enableV2Signing = true
             }
         }
     }
