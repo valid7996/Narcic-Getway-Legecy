@@ -8,7 +8,6 @@ import dev.valid7996.narcicgeteway.data.net.MtuResult
 import dev.valid7996.narcicgeteway.data.net.MtuServerHint
 import dev.valid7996.narcicgeteway.data.net.PingService
 import dev.valid7996.narcicgeteway.domain.config.ProfileSource
-import dev.valid7996.narcicgeteway.domain.config.SshProfile
 import dev.valid7996.narcicgeteway.domain.config.VpnProfile
 import dev.valid7996.narcicgeteway.domain.model.AppSettings
 import kotlinx.serialization.json.Json
@@ -167,31 +166,7 @@ class AppAiBridge(
 
         return runCatching {
             when (kind.lowercase()) {
-                "tor" -> {
-                    repository.addTor(label)
-                    "created the Tor server \"$label\". Tor is slow by design; expect seconds, not milliseconds."
-                }
 
-                "ssh" -> {
-                    val host = s("host")
-                    if (host.isBlank()) return "ssh needs a host"
-                    repository.addSsh(
-                        SshProfile(
-                            host = host,
-                            port = i("port", 22),
-                            username = s("username"),
-                            password = s("password"),
-                            privateKey = s("privateKey"),
-                            authType = if (s("privateKey").isNotBlank()) {
-                                SshProfile.AUTH_KEY
-                            } else {
-                                SshProfile.AUTH_PASSWORD
-                            },
-                        ),
-                        label,
-                    )
-                    "created the SSH server \"$label\""
-                }
 
                 else -> "this build cannot create a \"$kind\" server directly. " +
                     "Call list_protocols for what it can, and use import_config with a share link " +
@@ -286,13 +261,6 @@ class AppAiBridge(
 
     private fun kindOf(p: VpnProfile): String = when (p.source) {
         is ProfileSource.Psiphon -> "psiphon"
-        is ProfileSource.Tor -> "tor"
-        is ProfileSource.Ssh -> "ssh"
-        is ProfileSource.DnsTunnel -> "dnstunnel"
-        is ProfileSource.MasterDns -> "masterdns"
-        is ProfileSource.MhrvRelay -> "mhrvrelay"
-        is ProfileSource.OpenConnect -> "openconnect"
-        is ProfileSource.Ikev2 -> "ikev2"
         is ProfileSource.Aether -> "aether"
         is ProfileSource.ProxyChain -> "chain"
         is ProfileSource.CrossChain -> "crosschain"

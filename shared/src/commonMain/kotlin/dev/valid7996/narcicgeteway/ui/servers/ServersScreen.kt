@@ -121,7 +121,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import dev.valid7996.narcicgeteway.ui.platform.mouseDragScroll
 import dev.valid7996.narcicgeteway.ui.settings.IpScannerSheet
-import dev.valid7996.narcicgeteway.ui.settings.TelegramProxySheet
 
 @Composable
 fun ServersScreen(
@@ -398,8 +397,7 @@ fun ServersScreen(
     var showAddSheet by remember { mutableStateOf(false) }
     var showManual by remember { mutableStateOf(false) }
     var showIpScanner by remember { mutableStateOf(false) }
-    var showTelegramProxy by remember { mutableStateOf(false) }
-    var showPatt by remember { mutableStateOf(false) }
+        var showPatt by remember { mutableStateOf(false) }
     var showBackupRestore by remember { mutableStateOf(false) }
     var showDeviceCode by remember { mutableStateOf(false) }
     var lockShareTarget by remember { mutableStateOf<Pair<VpnProfile, String>?>(null) }
@@ -428,14 +426,8 @@ fun ServersScreen(
     var qrTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showCustomJson by remember { mutableStateOf(false) }
     var showPsiphon by remember { mutableStateOf(false) }
-    var showDnsTunnel by remember { mutableStateOf(false) }
-    var showMasterDns by remember { mutableStateOf(false) }
-    var showMhrv by remember { mutableStateOf(false) }
-    var showOpenConnect by remember { mutableStateOf(false) }
-    var showIkev2 by remember { mutableStateOf(false) }
-    var showSstp by remember { mutableStateOf(false) }
-    var showSsh by remember { mutableStateOf(false) }
-    var showSniSpoof by remember { mutableStateOf(false) }
+                    var showIkev2 by remember { mutableStateOf(false) }
+            var showSniSpoof by remember { mutableStateOf(false) }
     var showSniSpoofNoRoot by remember { mutableStateOf(false) }
     var showProxyChain by remember { mutableStateOf(false) }
     var showCrossChain by remember { mutableStateOf(false) }
@@ -1429,40 +1421,14 @@ fun ServersScreen(
                 showAddSheet = false
                 showPsiphon = true
             },
-            onDnsTunnel = {
-                showAddSheet = false
-                showDnsTunnel = true
-            },
-            onMasterDns = {
-                showAddSheet = false
-                showMasterDns = true
-            },
-            onMhrv = {
-                showAddSheet = false
-                showMhrv = true
-            },
-            onOpenConnect = {
-                showAddSheet = false
-                showOpenConnect = true
-            },
-            onIkev2 = {
-                showAddSheet = false
-                showIkev2 = true
-            },
-            onSstp = {
-                showAddSheet = false
-                showSstp = true
-            },
-            onTor = {
-                showAddSheet = false
-                repository.addTor("Tor")
+            
+            
+            
+            
 
-                toastRes(Res.string.tor_added)
-            },
-            onSsh = {
-                showAddSheet = false
-                showSsh = true
-            },
+            
+            
+            
             onSniSpoof = {
                 showAddSheet = false
                 showSniSpoof = true
@@ -1491,10 +1457,7 @@ fun ServersScreen(
                 showAddSheet = false
                 showIpScanner = true
             },
-            onTelegramProxy = {
-                showAddSheet = false
-                showTelegramProxy = true
-            },
+            
             onPatt = {
                 showAddSheet = false
                 showPatt = true
@@ -1574,9 +1537,7 @@ fun ServersScreen(
         )
     }
 
-    if (showTelegramProxy) {
-        TelegramProxySheet(onDismiss = { showTelegramProxy = false })
-    }
+    
 
     if (showPatt) {
         dev.valid7996.narcicgeteway.ui.settings.patt.PattSheet(
@@ -1682,73 +1643,19 @@ fun ServersScreen(
         )
     }
 
-    if (showDnsTunnel) {
-        DnsTunnelSheet(
-            onDismiss = { showDnsTunnel = false },
-            onSave = { name, settings ->
-                showDnsTunnel = false
-                repository.addDnsTunnel(settings, name)
-                onServerActivated()
-            },
-        )
-    }
+    
 
-    if (showMasterDns) {
-        MasterDnsSheet(
-            onDismiss = { showMasterDns = false },
-            onSave = { name, settings ->
-                showMasterDns = false
-                repository.addMasterDns(settings, name)
-                onServerActivated()
-            },
-        )
-    }
+    
 
-    if (showMhrv) {
-        MhrvRelaySheet(
-            onDismiss = { showMhrv = false },
-            onSave = { name, settings ->
-                showMhrv = false
-                repository.addMhrvRelay(settings, name)
-                onServerActivated()
-            },
-        )
-    }
+    
 
-    if (showOpenConnect) {
-        OpenConnectSheet(
-            onDismiss = { showOpenConnect = false },
-            onSave = { name, settings ->
-                showOpenConnect = false
-                repository.addOpenConnect(settings, name)
-                onServerActivated()
-            },
-        )
-    }
+    
 
 
 
-    if (showSstp) {
-        SstpSheet(
-            onDismiss = { showSstp = false },
-            onSave = { name, settings ->
-                showSstp = false
-                repository.addSstp(settings, name)
-                onServerActivated()
-            },
-        )
-    }
+    
 
-    if (showSsh) {
-        SshSheet(
-            onDismiss = { showSsh = false },
-            onSave = { name, settings ->
-                showSsh = false
-                repository.addSsh(settings, name)
-                onServerActivated()
-            },
-        )
-    }
+    
 
     if (showSniSpoof) {
         SniSpoofSheet(
@@ -2257,14 +2164,6 @@ internal fun AddServerSheet(
     onManual: () -> Unit,
     onCustom: () -> Unit,
     onPsiphon: () -> Unit,
-    onDnsTunnel: () -> Unit,
-    onMasterDns: () -> Unit,
-    onMhrv: () -> Unit,
-    onOpenConnect: () -> Unit,
-    onIkev2: () -> Unit = {},
-    onSstp: (() -> Unit)? = null,
-    onTor: () -> Unit,
-    onSsh: () -> Unit,
     onSniSpoof: () -> Unit,
     onSniSpoofNoRoot: () -> Unit,
     onAether: () -> Unit,
@@ -2272,7 +2171,6 @@ internal fun AddServerSheet(
     onCrossChain: () -> Unit,
     onSubscription: () -> Unit,
     onIpScanner: (() -> Unit)? = null,
-    onTelegramProxy: (() -> Unit)? = null,
     onPatt: (() -> Unit)? = null,
     onBackupRestore: (() -> Unit)? = null,
     onDeviceCode: (() -> Unit)? = null,
@@ -2383,26 +2281,8 @@ internal fun AddServerSheet(
                     gradientEnd = Color(0xFF130E28).copy(alpha = 0.75f),
                     onClick = onPsiphon,
                 )
-                GlassOptionCard(
-                    title = stringResource(Res.string.tor_add_title),
-                    subtitle = "",
-                    icon = Res.drawable.ic_lock,
-                    accentColor = Color(0xFFB55FE6),
-                    iconTint = Color(0xFFD8B4FE),
-                    gradientStart = Color(0xFF271348).copy(alpha = 0.90f),
-                    gradientEnd = Color(0xFF130E28).copy(alpha = 0.75f),
-                    onClick = onTor,
-                )
-                GlassOptionCard(
-                    title = stringResource(Res.string.ssh_add_title),
-                    subtitle = "",
-                    icon = Res.drawable.ic_bolt,
-                    accentColor = Color(0xFFB55FE6),
-                    iconTint = Color(0xFFD8B4FE),
-                    gradientStart = Color(0xFF271348).copy(alpha = 0.90f),
-                    gradientEnd = Color(0xFF130E28).copy(alpha = 0.75f),
-                    onClick = onSsh,
-                )
+                
+                
                 // The no-root SNI spoof is a setting now (Settings > SNI spoof), as in RstaNG, not a profile to create.
                 if (ServersUiConfig.SHOW_SNI_SPOOF_NO_ROOT) GlassOptionCard(
                     title = stringResource(Res.string.snispoof_noroot_add_title),
@@ -2415,49 +2295,10 @@ internal fun AddServerSheet(
                     onClick = onSniSpoofNoRoot,
                 )
 
-                OptionGroup(Res.string.add_group_dns)
-                GlassOptionCard(
-                    title = stringResource(Res.string.dns_tunnel_add_title),
-                    subtitle = "",
-                    icon = Res.drawable.ic_public,
-                    accentColor = Color(0xFF20D8C0),
-                    iconTint = Color(0xFF60E0B0),
-                    gradientStart = Color(0xFF0F2B38).copy(alpha = 0.90f),
-                    gradientEnd = Color(0xFF0B1B2C).copy(alpha = 0.75f),
-                    onClick = onDnsTunnel,
-                )
-                GlassOptionCard(
-                    title = stringResource(Res.string.master_dns_add_title),
-                    subtitle = "",
-                    icon = Res.drawable.ic_public,
-                    accentColor = Color(0xFF20D8C0),
-                    iconTint = Color(0xFF60E0B0),
-                    gradientStart = Color(0xFF0F2B38).copy(alpha = 0.90f),
-                    gradientEnd = Color(0xFF0B1B2C).copy(alpha = 0.75f),
-                    onClick = onMasterDns,
-                )
-                GlassOptionCard(
-                    title = stringResource(Res.string.mhrv_add_title),
-                    subtitle = stringResource(Res.string.mhrv_add_title_sub),
-                    icon = Res.drawable.ic_public,
-                    accentColor = Color(0xFF34C759),
-                    iconTint = Color(0xFF7BE495),
-                    gradientStart = Color(0xFF10301E).copy(alpha = 0.90f),
-                    gradientEnd = Color(0xFF0B2016).copy(alpha = 0.75f),
-                    onClick = onMhrv,
-                )
+                
 
                 OptionGroup(Res.string.add_group_vpn)
-                GlassOptionCard(
-                    title = stringResource(Res.string.openconnect_add_title),
-                    subtitle = "",
-                    icon = Res.drawable.ic_lock,
-                    accentColor = Color(0xFF2088FF),
-                    iconTint = Color(0xFF38BDF8),
-                    gradientStart = Color(0xFF0C2442).copy(alpha = 0.90f),
-                    gradientEnd = Color(0xFF0A1A30).copy(alpha = 0.75f),
-                    onClick = onOpenConnect,
-                )
+                
                 if (ServersUiConfig.SHOW_AETHER) {
                     GlassOptionCard(
                         title = stringResource(Res.string.aether_add_title),
@@ -2471,18 +2312,7 @@ internal fun AddServerSheet(
                     )
                 }
 
-                if (onSstp != null) {
-                    GlassOptionCard(
-                        title = "MS-SSTP",
-                        subtitle = "پروتکل امن مایکروسافت / میکروتیک (SSL)",
-                        icon = Res.drawable.ic_lock,
-                        accentColor = Color(0xFF00A4EF),
-                        iconTint = Color(0xFF38BDF8),
-                        gradientStart = Color(0xFF0C2442).copy(alpha = 0.90f),
-                        gradientEnd = Color(0xFF0A1A30).copy(alpha = 0.75f),
-                        onClick = onSstp,
-                    )
-                }
+                
 
                 OptionGroup(Res.string.add_group_chains)
                 GlassOptionCard(
@@ -2533,16 +2363,7 @@ internal fun AddServerSheet(
                         )
                     }
                     if (ServersUiConfig.SHOW_TOR) {
-                        GlassOptionCard(
-                            title = stringResource(Res.string.tor_add_title),
-                            subtitle = "",
-                            icon = Res.drawable.ic_lock,
-                            accentColor = Color(0xFFB55FE6),
-                            iconTint = Color(0xFFD8B4FE),
-                            gradientStart = Color(0xFF271348).copy(alpha = 0.90f),
-                            gradientEnd = Color(0xFF130E28).copy(alpha = 0.75f),
-                            onClick = onTor,
-                        )
+                        
                     }
                 }
                 if (ServersUiConfig.SHOW_AETHER) {
@@ -2599,21 +2420,8 @@ internal fun AddServerSheet(
                 onClick = onSubscription,
             )
 
-            if (onTelegramProxy != null || onIpScanner != null) {
+            if (onIpScanner != null) {
                 OptionGroup(stringResource(Res.string.tools_group_network))
-                if (onTelegramProxy != null) {
-                    GlassOptionCard(
-                        title = stringResource(Res.string.tools_telegram_proxies_title),
-                        subtitle = stringResource(Res.string.tools_telegram_proxies_sub),
-                        icon = Res.drawable.ic_public,
-                        accentColor = Color(0xFF34C759),
-                        iconTint = Color(0xFF4ADE80),
-                        gradientStart = Color(0xFF0D3320).copy(alpha = 0.90f),
-                        gradientEnd = Color(0xFF081C12).copy(alpha = 0.75f),
-                        onClick = onTelegramProxy,
-                    )
-                }
-                if (onIpScanner != null) {
                     GlassOptionCard(
                         title = stringResource(Res.string.tools_narcic_scanner_title),
                         subtitle = stringResource(Res.string.tools_narcic_scanner_sub),
@@ -2661,7 +2469,6 @@ internal fun AddServerSheet(
                         onClick = onBackupRestore,
                     )
                 }
-            }
         }
     }
 }

@@ -26,40 +26,12 @@ sealed interface ProfileSource {
     data class Psiphon(val settings: PsiphonProfile) : ProfileSource
 
     @Serializable
-    @SerialName("dns_tunnel")
-    data class DnsTunnel(val settings: DnsTunnelProfile) : ProfileSource
-
-    @Serializable
-    @SerialName("tor")
-    data object Tor : ProfileSource
-
-    @Serializable
-    @SerialName("ssh")
-    data class Ssh(val settings: SshProfile) : ProfileSource
-
-    @Serializable
     @SerialName("sni_spoof")
     data class SniSpoof(val settings: SniSpoofProfile) : ProfileSource
 
     @Serializable
-    @SerialName("master_dns")
-    data class MasterDns(val settings: MasterDnsProfile) : ProfileSource
-
-    @Serializable
-    @SerialName("mhrv_relay")
-    data class MhrvRelay(val settings: MhrvRelayProfile) : ProfileSource
-
-    @Serializable
-    @SerialName("openconnect")
-    data class OpenConnect(val settings: OpenConnectProfile) : ProfileSource
-
-    @Serializable
     @SerialName("aether")
     data class Aether(val settings: AetherProfile) : ProfileSource
-
-    @Serializable
-    @SerialName("ikev2")
-    data class Ikev2(val settings: Ikev2Profile) : ProfileSource
 
     @Serializable
     @SerialName("proxy_chain")
@@ -80,10 +52,6 @@ sealed interface ProfileSource {
     @Serializable
     @SerialName("sing_box_config")
     data class SingBoxConfig(val json: String) : ProfileSource
-
-    @Serializable
-    @SerialName("sstp")
-    data class Sstp(val settings: SstpProfile) : ProfileSource
 }
 
 @Serializable
@@ -114,15 +82,15 @@ data class VpnProfile(
 
     val isPsiphon: Boolean get() = source is ProfileSource.Psiphon
 
-    val isDnsTunnel: Boolean get() = source is ProfileSource.DnsTunnel
+    val isDnsTunnel: Boolean get() = false
 
-    val isMasterDns: Boolean get() = source is ProfileSource.MasterDns
+    val isMasterDns: Boolean get() = false
 
-    val isMhrvRelay: Boolean get() = source is ProfileSource.MhrvRelay
+    val isMhrvRelay: Boolean get() = false
 
-    val isTor: Boolean get() = source is ProfileSource.Tor
+    val isTor: Boolean get() = false
 
-    val isSsh: Boolean get() = source is ProfileSource.Ssh
+    val isSsh: Boolean get() = false
 
     val isLoopbackOrRstaPort: Boolean
         get() = SniSpoofConfig.isSpoofTarget(address, port)
@@ -134,13 +102,13 @@ data class VpnProfile(
         get() = (source as? ProfileSource.SniSpoof)?.settings?.noRoot == true ||
             (isLoopbackOrRstaPort && source !is ProfileSource.CrossChain && source !is ProfileSource.AutoSelect)
 
-    val isOpenConnect: Boolean get() = source is ProfileSource.OpenConnect
+    val isOpenConnect: Boolean get() = false
 
     val isAether: Boolean get() = ((resolveUnsealed() ?: this).source is ProfileSource.Aether)
 
-    val isIkev2: Boolean get() = source is ProfileSource.Ikev2
+    val isIkev2: Boolean get() = false
 
-    val isSstp: Boolean get() = ((resolveUnsealed() ?: this).source is ProfileSource.Sstp)
+    val isSstp: Boolean get() = false
 
     val isProxyChain: Boolean get() = source is ProfileSource.ProxyChain
 
@@ -161,7 +129,7 @@ data class VpnProfile(
 
     val carriesUdpHop: Boolean get() = chainProtocol?.carriesUdp != false
 
-    fun sshSettings(): SshProfile? = (source as? ProfileSource.Ssh)?.settings
+    fun sshSettings(): Any? = null
 
     fun sniSpoofSettings(): SniSpoofProfile? {
         if (source is ProfileSource.CrossChain || source is ProfileSource.AutoSelect) return null
@@ -193,26 +161,25 @@ data class VpnProfile(
     }
 
     val isManagedTunnel: Boolean
-        get() = isPsiphon || isDnsTunnel || isMasterDns || isMhrvRelay || isTor || isSsh || isSniSpoof ||
-            isOpenConnect || isIkev2 || isAether || isCrossChain || isSingBoxConfig || isSstp
+        get() = isPsiphon || isSniSpoof || isAether || isCrossChain || isSingBoxConfig
 
-    val isDnsBasedTunnel: Boolean get() = isDnsTunnel || isMasterDns
+    val isDnsBasedTunnel: Boolean get() = false
 
     fun psiphonSettings(): PsiphonProfile? = (source as? ProfileSource.Psiphon)?.settings
 
-    fun dnsTunnelSettings(): DnsTunnelProfile? = (source as? ProfileSource.DnsTunnel)?.settings
+    fun dnsTunnelSettings(): Any? = null
 
-    fun masterDnsSettings(): MasterDnsProfile? = (source as? ProfileSource.MasterDns)?.settings
+    fun masterDnsSettings(): Any? = null
 
-    fun mhrvRelaySettings(): MhrvRelayProfile? = (source as? ProfileSource.MhrvRelay)?.settings
+    fun mhrvRelaySettings(): Any? = null
 
-    fun openConnectSettings(): OpenConnectProfile? = (source as? ProfileSource.OpenConnect)?.settings
+    fun openConnectSettings(): Any? = null
 
     fun aetherSettings(): AetherProfile? = ((resolveUnsealed() ?: this).source as? ProfileSource.Aether)?.settings
 
-    fun ikev2Settings(): Ikev2Profile? = (source as? ProfileSource.Ikev2)?.settings
+    fun ikev2Settings(): Any? = null
 
-    fun sstpSettings(): SstpProfile? = ((resolveUnsealed() ?: this).source as? ProfileSource.Sstp)?.settings
+    fun sstpSettings(): Any? = null
 
     fun proxyChainSettings(): List<String>? = (source as? ProfileSource.ProxyChain)?.memberIds
 
@@ -221,14 +188,12 @@ data class VpnProfile(
     val canCarryChain: Boolean
         get() = when (source) {
             is ProfileSource.Link, is ProfileSource.RawJson, is ProfileSource.Sealed,
-            is ProfileSource.ProxyChain, is ProfileSource.SingBox,
-            is ProfileSource.Psiphon, is ProfileSource.Tor -> true
+            is ProfileSource.ProxyChain, is ProfileSource.SingBox -> true
             else -> false
         }
 
     val canDialThroughProxy: Boolean
         get() = when (source) {
-            is ProfileSource.Tor, is ProfileSource.Psiphon -> true
             is ProfileSource.Link, is ProfileSource.RawJson, is ProfileSource.Sealed,
             is ProfileSource.ProxyChain, is ProfileSource.SingBox -> true
             else -> false
@@ -259,13 +224,6 @@ data class VpnProfile(
             if (parsed != null) {
                 val src = parsed.source
                 return when (src) {
-                    is ProfileSource.Sstp -> copy(
-                        source = src,
-                        protocol = "SSTP",
-                        address = src.settings.serverHost(),
-                        port = src.settings.effectivePort(),
-                        transportLabel = "SSTP",
-                    )
                     is ProfileSource.Aether -> copy(
                         source = src,
                         protocol = "AETHER",
@@ -273,42 +231,12 @@ data class VpnProfile(
                         port = src.settings.serverPort,
                         transportLabel = src.settings.protocol.uppercase(),
                     )
-                    is ProfileSource.OpenConnect -> copy(
-                        source = src,
-                        protocol = "OPENCONNECT",
-                        address = src.settings.server,
-                        port = src.settings.serverPort(),
-                        transportLabel = src.settings.protocol.uppercase(),
-                    )
-                    is ProfileSource.Ikev2 -> copy(
-                        source = src,
-                        protocol = "IKEV2",
-                        address = src.settings.server,
-                        port = 0,
-                        transportLabel = "IKEv2",
-                    )
                     else -> copy(source = src)
                 }
             }
         }
 
-        // 1.5 SSTP link
-        if (payload.startsWith("sstp://", ignoreCase = true)) {
-            val parsed = SstpProfile.fromLink(payload)
-            if (parsed != null) {
-                val (profName, settings) = parsed
-                return copy(
-                    source = ProfileSource.Sstp(settings),
-                    protocol = "SSTP",
-                    address = settings.serverHost(),
-                    port = settings.effectivePort(),
-                    name = profName.ifBlank { name },
-                    transportLabel = "SSTP",
-                )
-            }
-        }
-
-        // 1.6 Aether link
+        // 2. Aether link
         if (AetherLink.isAetherLink(payload)) {
             val parsed = AetherLink.parse(payload)
             if (parsed != null) {
@@ -324,7 +252,7 @@ data class VpnProfile(
             }
         }
 
-        // 1.7 SniSpoof link
+        // 3. SniSpoof link
         if (SniSpoofLink.isSniSpoofLink(payload)) {
             val parsed = SniSpoofLink.parse(payload)
             if (parsed != null) {
@@ -337,33 +265,18 @@ data class VpnProfile(
             }
         }
 
-        // 2. MHRV
-        if (payload.startsWith(MhrvRelayProfile.SHARE_PREFIX, ignoreCase = true) ||
-            (payload.startsWith("{") && "\"script_id" in payload && "\"auth_key\"" in payload)
-        ) {
-            val mhrv = MhrvRelayProfile.fromText(payload)
-            if (mhrv != null) {
-                return copy(
-                    source = ProfileSource.MhrvRelay(mhrv),
-                    protocol = "MHRV",
-                    address = mhrv.googleIp.ifBlank { MhrvRelayProfile.DEFAULT_GOOGLE_IP },
-                    port = 443,
-                )
-            }
-        }
-
-        // 3. SingBox links (vless with reality, hysteria2, tuic, wireguard, etc.)
+        // 4. SingBox links (vless with reality, hysteria2, tuic, wireguard, etc.)
         if (SingBoxLinks.handles(payload)) {
             val parsed = SingBoxLinks.parse(payload)
             return copy(source = ProfileSource.SingBox(parsed.fragment, parsed.name), protocol = parsed.name)
         }
 
-        // 4. Sing-box JSON
+        // 5. Sing-box JSON
         if (SingBoxJson.isSingBox(payload)) {
             return copy(source = ProfileSource.SingBoxConfig(payload), protocol = "SingBox")
         }
 
-        // 5. Standard Xray link
+        // 6. Standard Xray link
         val xScheme = payload.substringBefore("://", "").lowercase()
         if (Protocol.fromScheme(xScheme) != null) {
             val parsed = runCatching { ConfigParser.parse(payload) }.getOrNull()
@@ -377,7 +290,7 @@ data class VpnProfile(
             }
         }
 
-        // 6. Custom Xray JSON
+        // 7. Custom Xray JSON
         if (CustomConfig.looksLikeCustomJson(payload)) {
             return copy(source = ProfileSource.RawJson(payload), protocol = "Xray")
         }
@@ -392,17 +305,9 @@ data class VpnProfile(
         is ProfileSource.Sealed -> null
 
         is ProfileSource.Psiphon -> NrgLink.build(name, src)
-        is ProfileSource.DnsTunnel -> NrgLink.build(name, src)
-        is ProfileSource.Tor -> NrgLink.build(name, src)
-        is ProfileSource.Ssh -> NrgLink.build(name, src)
 
         is ProfileSource.SniSpoof -> SniSpoofLink.build(src.settings, name)
-        is ProfileSource.MasterDns -> NrgLink.build(name, src)
-        is ProfileSource.MhrvRelay -> NrgLink.build(name, src)
-        is ProfileSource.OpenConnect -> NrgLink.build(name, src)
-        is ProfileSource.Ikev2 -> NrgLink.build(name, src)
         is ProfileSource.Aether -> AetherLink.build(src.settings, name)
-        is ProfileSource.Sstp -> src.settings.toLink(name)
 
         is ProfileSource.ProxyChain -> null
         is ProfileSource.CrossChain -> null
@@ -463,15 +368,7 @@ data class VpnProfile(
         }
 
         is ProfileSource.Psiphon -> throw IllegalStateException("Psiphon profiles do not build Xray config")
-        is ProfileSource.DnsTunnel -> throw IllegalStateException("DNS-tunnel profiles do not build Xray config")
-        is ProfileSource.MasterDns -> throw IllegalStateException("MasterDNS profiles do not build Xray config")
-        is ProfileSource.MhrvRelay -> throw IllegalStateException("MHRV relay profiles do not build Xray config")
-        is ProfileSource.OpenConnect -> throw IllegalStateException("OpenConnect profiles do not build Xray config")
         is ProfileSource.Aether -> throw IllegalStateException("Aether profiles do not build Xray config")
-        is ProfileSource.Ikev2 -> throw IllegalStateException("IKEv2 profiles do not build Xray config")
-        is ProfileSource.Sstp -> throw IllegalStateException("SSTP profiles do not build Xray config")
-        is ProfileSource.Tor -> throw IllegalStateException("Tor profiles do not build Xray config")
-        is ProfileSource.Ssh -> throw IllegalStateException("SSH profiles do not build Xray config")
 
         is ProfileSource.ProxyChain ->
             throw IllegalStateException("Proxy-chain profiles are built via ConfigRepository.buildChainConfig")
@@ -554,101 +451,6 @@ data class VpnProfile(
             countryCode = settings.country.takeIf { it.isNotBlank() }?.uppercase(),
         )
 
-        fun fromDnsTunnel(
-            settings: DnsTunnelProfile,
-            id: String,
-            addedAt: Long,
-            name: String,
-            subscriptionId: String = "",
-        ): VpnProfile = VpnProfile(
-            id = id,
-            name = name.ifBlank { if (settings.isVaydns) "VayDNS" else "DNSTT" },
-            protocol = settings.engine.uppercase(),
-            address = settings.domain,
-            port = 0,
-            transportLabel = if (settings.isVaydns) "VayDNS" else "DNSTT",
-            source = ProfileSource.DnsTunnel(settings),
-            addedAt = addedAt,
-            subscriptionId = subscriptionId,
-        )
-
-        fun fromMasterDns(
-            settings: MasterDnsProfile,
-            id: String,
-            addedAt: Long,
-            name: String,
-            subscriptionId: String = "",
-        ): VpnProfile = VpnProfile(
-            id = id,
-            name = name.ifBlank { "MasterDNS" },
-            protocol = "MASTERDNS",
-            address = settings.domains.split(',', '\n').firstOrNull()?.trim().orEmpty(),
-            port = 0,
-            transportLabel = "MasterDNS",
-            source = ProfileSource.MasterDns(settings),
-            addedAt = addedAt,
-            subscriptionId = subscriptionId,
-        )
-
-        fun fromMhrvRelay(
-            settings: MhrvRelayProfile,
-            id: String,
-            addedAt: Long,
-            name: String,
-            subscriptionId: String = "",
-        ): VpnProfile = VpnProfile(
-            id = id,
-            name = name.ifBlank { "MHRV Relay" },
-            protocol = "MHRV",
-            address = settings.googleIp.trim().ifEmpty { MhrvRelayProfile.DEFAULT_GOOGLE_IP },
-            port = 443,
-            transportLabel = when (settings.mode) {
-                MhrvRelayProfile.MODE_FULL -> "Apps Script · Full"
-                MhrvRelayProfile.MODE_DIRECT -> "Google fronting"
-                else -> "Apps Script"
-            },
-            source = ProfileSource.MhrvRelay(settings),
-            addedAt = addedAt,
-            subscriptionId = subscriptionId,
-        )
-
-        fun fromOpenConnect(
-            settings: OpenConnectProfile,
-            id: String,
-            addedAt: Long,
-            name: String,
-            subscriptionId: String = "",
-        ): VpnProfile = VpnProfile(
-            id = id,
-            name = name.ifBlank { "OpenConnect ${settings.server}" },
-            protocol = "OPENCONNECT",
-            address = settings.server,
-
-            port = settings.serverPort(),
-            transportLabel = settings.protocol.uppercase(),
-            source = ProfileSource.OpenConnect(settings),
-            addedAt = addedAt,
-            subscriptionId = subscriptionId,
-        )
-
-        fun fromIkev2(
-            settings: Ikev2Profile,
-            id: String,
-            addedAt: Long,
-            name: String,
-            subscriptionId: String = "",
-        ): VpnProfile = VpnProfile(
-            id = id,
-            name = name.ifBlank { "IKEv2 ${settings.server}" },
-            protocol = "IKEV2",
-            address = settings.server,
-            port = 0,
-            transportLabel = "IKEv2",
-            source = ProfileSource.Ikev2(settings),
-            addedAt = addedAt,
-            subscriptionId = subscriptionId,
-        )
-
         fun fromAether(
             settings: AetherProfile,
             id: String,
@@ -663,24 +465,6 @@ data class VpnProfile(
             port = settings.serverPort,
             transportLabel = settings.protocol.uppercase(),
             source = ProfileSource.Aether(settings),
-            addedAt = addedAt,
-            subscriptionId = subscriptionId,
-        )
-
-        fun fromSstp(
-            settings: SstpProfile,
-            id: String,
-            addedAt: Long,
-            name: String,
-            subscriptionId: String = "",
-        ): VpnProfile = VpnProfile(
-            id = id,
-            name = name.ifBlank { "SSTP ${settings.serverHost()}:${settings.effectivePort()}" },
-            protocol = "SSTP",
-            address = settings.serverHost(),
-            port = settings.effectivePort(),
-            transportLabel = "SSTP",
-            source = ProfileSource.Sstp(settings),
             addedAt = addedAt,
             subscriptionId = subscriptionId,
         )
@@ -737,18 +521,6 @@ data class VpnProfile(
                 subscriptionId = subscriptionId,
             )
         }
-
-        fun fromTor(id: String, addedAt: Long, name: String, subscriptionId: String = ""): VpnProfile = VpnProfile(
-            id = id,
-            name = name.ifBlank { "Tor" },
-            protocol = "TOR",
-            address = "tor",
-            port = 0,
-            transportLabel = "Tor",
-            source = ProfileSource.Tor,
-            addedAt = addedAt,
-            subscriptionId = subscriptionId,
-        )
 
         fun fromProxyChain(
             memberIds: List<String>,
@@ -811,17 +583,6 @@ data class VpnProfile(
             )
         }
 
-        fun fromSsh(settings: SshProfile, id: String, addedAt: Long, name: String, subscriptionId: String = ""): VpnProfile = VpnProfile(
-            id = id,
-            name = name.ifBlank { "SSH ${settings.host}" },
-            protocol = "SSH",
-            address = settings.host,
-            port = settings.port,
-            transportLabel = "SSH",
-            source = ProfileSource.Ssh(settings),
-            addedAt = addedAt,
-            subscriptionId = subscriptionId,
-        )
 
         fun fromNrgLink(
             link: String,
@@ -832,16 +593,8 @@ data class VpnProfile(
             val payload = NrgLink.parse(link) ?: return null
             val name = payload.name
             return when (val src = payload.source) {
-                is ProfileSource.Ikev2 -> fromIkev2(src.settings, id, addedAt, name, subscriptionId = subscriptionId)
-                is ProfileSource.OpenConnect -> fromOpenConnect(src.settings, id, addedAt, name, subscriptionId = subscriptionId)
                 is ProfileSource.Aether -> fromAether(src.settings, id, addedAt, name, subscriptionId = subscriptionId)
-                is ProfileSource.Sstp -> fromSstp(src.settings, id, addedAt, name, subscriptionId = subscriptionId)
                 is ProfileSource.Psiphon -> fromPsiphon(src.settings, id, addedAt, name, subscriptionId = subscriptionId)
-                is ProfileSource.DnsTunnel -> fromDnsTunnel(src.settings, id, addedAt, name, subscriptionId = subscriptionId)
-                is ProfileSource.MasterDns -> fromMasterDns(src.settings, id, addedAt, name, subscriptionId = subscriptionId)
-                is ProfileSource.MhrvRelay -> fromMhrvRelay(src.settings, id, addedAt, name, subscriptionId = subscriptionId)
-                is ProfileSource.Tor -> fromTor(id, addedAt, name, subscriptionId = subscriptionId)
-                is ProfileSource.Ssh -> fromSsh(src.settings, id, addedAt, name, subscriptionId = subscriptionId)
                 else -> null
             }
         }

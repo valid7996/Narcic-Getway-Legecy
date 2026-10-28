@@ -308,16 +308,7 @@ class MainActivity : ComponentActivity() {
                         appVersion = dev.valid7996.narcicgeteway.BuildConfig.VERSION_NAME,
                     )
 
-                    dev.valid7996.narcicgeteway.ui.OpenConnectAuthDialog()
-                    dev.valid7996.narcicgeteway.ui.OpenConnectCertTrustDialog(
-                        onRemember = { hash ->
-                            configRepository.activeProfile()?.let {
-                                configRepository.rememberOpenConnectCert(it.id, hash)
-                            }
-                        },
-                    )
-                    dev.valid7996.narcicgeteway.ui.OpenConnectSsoDialog()
-                }
+                                    }
             }
         }
     }

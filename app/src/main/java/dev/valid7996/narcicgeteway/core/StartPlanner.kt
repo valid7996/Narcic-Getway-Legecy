@@ -122,15 +122,7 @@ class StartPlanner(context: Context) {
     fun engineKindOf(profile: VpnProfile): String = when {
         profile.isCrossChain -> VpnManager.KIND_CROSS_CHAIN
         profile.psiphonSettings() != null -> VpnManager.KIND_PSIPHON
-        profile.dnsTunnelSettings() != null -> VpnManager.KIND_DNS_TUNNEL
-        profile.masterDnsSettings() != null -> VpnManager.KIND_MASTERDNS
-        profile.mhrvRelaySettings() != null -> VpnManager.KIND_MHRV
-        profile.openConnectSettings() != null -> VpnManager.KIND_OPENCONNECT
         profile.aetherSettings() != null -> VpnManager.KIND_AETHER
-        profile.ikev2Settings() != null -> VpnManager.KIND_IKEV2
-        profile.sstpSettings() != null -> VpnManager.KIND_SSTP
-        profile.isTor -> VpnManager.KIND_TOR
-        profile.sshSettings() != null -> VpnManager.KIND_SSH
         profile.sniSpoofSettings() != null -> VpnManager.KIND_SNISPOOF
         profile.isSingBoxConfig -> VpnManager.KIND_SINGBOX
         else -> VpnManager.KIND_XRAY

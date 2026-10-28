@@ -204,15 +204,7 @@ data class DeepLinkPreview(
 
         private fun sourceLabel(source: ProfileSource): String = when (source) {
             is ProfileSource.Psiphon -> "Psiphon"
-            is ProfileSource.DnsTunnel -> if (source.settings.isVaydns) "VayDNS" else "DNSTT"
-            is ProfileSource.Tor -> "Tor"
-            is ProfileSource.Ssh -> "SSH"
-            is ProfileSource.MasterDns -> "MasterDNS"
-            is ProfileSource.MhrvRelay -> "MHRV Relay"
-            is ProfileSource.OpenConnect -> "OpenConnect"
-            is ProfileSource.Ikev2 -> "IKEv2"
             is ProfileSource.Aether -> "Aether"
-            is ProfileSource.Sstp -> "MS-SSTP"
             is ProfileSource.ProxyChain -> "Proxy chain"
             is ProfileSource.CrossChain -> "Cross chain"
             is ProfileSource.SniSpoof -> "SNI spoof"

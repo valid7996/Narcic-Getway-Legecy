@@ -56,7 +56,6 @@ import dev.valid7996.narcicgeteway.shared.resources.Res
 import dev.valid7996.narcicgeteway.shared.resources.*
 import dev.valid7996.narcicgeteway.ui.servers.AddServerSheet
 import dev.valid7996.narcicgeteway.ui.settings.IpScannerSheet
-import dev.valid7996.narcicgeteway.ui.settings.TelegramProxySheet
 import dev.valid7996.narcicgeteway.ui.servers.AetherSheet
 import dev.valid7996.narcicgeteway.ui.servers.AutoSelectCard
 import dev.valid7996.narcicgeteway.ui.servers.AutoSelectSheet
@@ -70,12 +69,6 @@ import dev.valid7996.narcicgeteway.ui.components.QrDialog
 import dev.valid7996.narcicgeteway.ui.servers.SubscriptionsSheet
 import dev.valid7996.narcicgeteway.ui.servers.ManualConfigSheet
 import dev.valid7996.narcicgeteway.ui.servers.RawJsonSheet
-import dev.valid7996.narcicgeteway.ui.servers.DnsTunnelSheet
-import dev.valid7996.narcicgeteway.ui.servers.MasterDnsSheet
-import dev.valid7996.narcicgeteway.ui.servers.MhrvRelaySheet
-import dev.valid7996.narcicgeteway.ui.servers.OpenConnectSheet
-import dev.valid7996.narcicgeteway.ui.servers.SstpSheet
-import dev.valid7996.narcicgeteway.ui.servers.SshSheet
 import dev.valid7996.narcicgeteway.ui.theme.Personalization
 import dev.valid7996.narcicgeteway.ui.theme.NrgGreen
 import dev.valid7996.narcicgeteway.ui.theme.readableOn
@@ -141,14 +134,8 @@ internal fun HomeServerSection(
     var showCrossChain by remember { mutableStateOf(false) }
     var showManual by remember { mutableStateOf(false) }
     var showCustomJson by remember { mutableStateOf(false) }
-    var showDnsTunnel by remember { mutableStateOf(false) }
-    var showMasterDns by remember { mutableStateOf(false) }
-    var showMhrv by remember { mutableStateOf(false) }
-    var showOpenConnect by remember { mutableStateOf(false) }
-        var showSstp by remember { mutableStateOf(false) }
-    var showSsh by remember { mutableStateOf(false) }
-    var showIpScanner by remember { mutableStateOf(false) }
-    var showTelegramProxy by remember { mutableStateOf(false) }
+                                var showIpScanner by remember { mutableStateOf(false) }
+
     var showPatt by remember { mutableStateOf(false) }
     var ovpnPrompt by remember { mutableStateOf<Pair<String, String>?>(null) }
     var pendingUnlock by remember { mutableStateOf<Triple<ByteArray, ZsxMetadata, String>?>(null) }
@@ -767,35 +754,13 @@ internal fun HomeServerSection(
                 showAdd = false
                 showPsiphon = true
             },
-            onDnsTunnel = {
-                showAdd = false
-                showDnsTunnel = true
-            },
-            onMasterDns = {
-                showAdd = false
-                showMasterDns = true
-            },
-            onMhrv = {
-                showAdd = false
-                showMhrv = true
-            },
-            onOpenConnect = {
-                showAdd = false
-                showOpenConnect = true
-            },
-            onSstp = {
-                showAdd = false
-                showSstp = true
-            },
-            onTor = {
-                showAdd = false
-                repository.addTor("Tor")
-                platform.toast(torAddedToast)
-            },
-            onSsh = {
-                showAdd = false
-                showSsh = true
-            },
+            
+            
+            
+            
+            
+
+            
             onSniSpoof = {},
             onSniSpoofNoRoot = { showAdd = false; showSniSpoofNoRoot = true },
             onProxyChain = {
@@ -809,7 +774,7 @@ internal fun HomeServerSection(
             onAether = { showAdd = false; showAether = true },
             onSubscription = { showAdd = false; showSubs = true },
             onIpScanner = { showAdd = false; showIpScanner = true },
-            onTelegramProxy = { showAdd = false; showTelegramProxy = true },
+
             onPatt = { showAdd = false; showPatt = true },
             onBackupRestore = { showAdd = false; showBackupRestore = true },
         )
@@ -840,9 +805,7 @@ internal fun HomeServerSection(
         )
     }
 
-    if (showTelegramProxy) {
-        TelegramProxySheet(onDismiss = { showTelegramProxy = false })
-    }
+
 
     if (showPatt) {
         dev.valid7996.narcicgeteway.ui.settings.patt.PattSheet(
@@ -917,65 +880,17 @@ internal fun HomeServerSection(
         )
     }
 
-    if (showDnsTunnel) {
-        DnsTunnelSheet(
-            onDismiss = { showDnsTunnel = false },
-            onSave = { name, s ->
-                showDnsTunnel = false
-                repository.addDnsTunnel(s, name)
-            },
-        )
-    }
+    
 
-    if (showMasterDns) {
-        MasterDnsSheet(
-            onDismiss = { showMasterDns = false },
-            onSave = { name, s ->
-                showMasterDns = false
-                repository.addMasterDns(s, name)
-            },
-        )
-    }
+    
 
-    if (showMhrv) {
-        MhrvRelaySheet(
-            onDismiss = { showMhrv = false },
-            onSave = { name, s ->
-                showMhrv = false
-                repository.addMhrvRelay(s, name)
-            },
-        )
-    }
+    
 
-    if (showOpenConnect) {
-        OpenConnectSheet(
-            onDismiss = { showOpenConnect = false },
-            onSave = { name, s ->
-                showOpenConnect = false
-                repository.addOpenConnect(s, name)
-            },
-        )
-    }
+    
 
-    if (showSstp) {
-        SstpSheet(
-            onDismiss = { showSstp = false },
-            onSave = { name, s ->
-                showSstp = false
-                repository.addSstp(s, name)
-            },
-        )
-    }
+    
 
-    if (showSsh) {
-        SshSheet(
-            onDismiss = { showSsh = false },
-            onSave = { name, s ->
-                showSsh = false
-                repository.addSsh(s, name)
-            },
-        )
-    }
+    
 
     ovpnPrompt?.let { (text, name) ->
         var username by remember(text) { mutableStateOf("") }

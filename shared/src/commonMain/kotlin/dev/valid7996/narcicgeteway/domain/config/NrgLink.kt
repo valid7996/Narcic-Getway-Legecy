@@ -57,14 +57,6 @@ object NrgLink {
 
     fun handles(source: ProfileSource): Boolean = when (source) {
         is ProfileSource.Psiphon,
-        is ProfileSource.DnsTunnel,
-        is ProfileSource.Tor,
-        is ProfileSource.Ssh,
-        is ProfileSource.MasterDns,
-        is ProfileSource.MhrvRelay,
-        is ProfileSource.OpenConnect,
-        is ProfileSource.Ikev2,
-        is ProfileSource.Sstp,
         is ProfileSource.Aether,
         is ProfileSource.ProxyChain,
         is ProfileSource.CrossChain,

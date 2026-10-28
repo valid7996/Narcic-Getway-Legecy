@@ -241,25 +241,7 @@ object PingService {
             return if (tcp > 0) tcp else -1L
         }
         if (effective.isAether) return aetherDelay(effective, url)
-        if (effective.isSstp) {
-            val sni = effective.address
-            val probe = sniProbe?.invoke(effective.address, sni)
-            if (probe != null && probe > 0) return probe
-            val tcp = tcpPing(effective.address, effective.port)
-            return if (tcp > 0) tcp else -1L
-        }
-        if (effective.isMhrvRelay) {
-            val mhrv = effective.mhrvRelaySettings()
-            if (mhrv != null) {
-                val ip = mhrv.googleIp.trim().ifEmpty { dev.valid7996.narcicgeteway.domain.config.MhrvRelayProfile.DEFAULT_GOOGLE_IP }
-                val sni = mhrv.sniList().firstOrNull()?.trim()?.ifEmpty { null }
-                    ?: mhrv.frontDomain.trim().ifEmpty { dev.valid7996.narcicgeteway.domain.config.MhrvRelayProfile.DEFAULT_FRONT_DOMAIN }
-                val probe = sniProbe?.invoke(ip, sni)
-                if (probe != null && probe > 0) return probe
-                val tcp = tcpPing(ip, 443)
-                return if (tcp > 0) tcp else -1L
-            }
-        }
+
         if (effective.isProxyChain) {
             val config = chainConfig(effective) ?: return -1L
             return probeWithTimeout(effective, config, url)
@@ -274,10 +256,7 @@ object PingService {
 
     fun shouldPrecheck(profile: VpnProfile): Boolean {
         val effective = profile.resolveUnsealed() ?: profile
-        if (effective.isMhrvRelay) return false
         if (effective.isAether) return false
-        if (effective.isSstp) return false
-        if (effective.isIkev2 || effective.ikev2Settings() != null) return false
         if (effective.isProxyChain) return false
         if (effective.isSniSpoof || effective.isNoRootSniSpoof || SniSpoofConfig.isSpoofTarget(effective.address, effective.port)) return false
         if (effective.address.isBlank() || effective.address == "-") return false

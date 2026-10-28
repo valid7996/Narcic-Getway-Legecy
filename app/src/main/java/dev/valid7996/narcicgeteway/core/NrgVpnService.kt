@@ -51,19 +51,12 @@ class NrgVpnService : VpnService() {
         dev.valid7996.narcicgeteway.domain.model.NotifChip.Speed
     private var psiphon: PsiphonController? = null
     private var aether: AetherController? = null
-    private var dnsTunnel: DnsTunnelController? = null
-    private var masterDns: MasterDnsController? = null
-    private var mhrv: MhrvRelayController? = null
-    private var tor: dev.valid7996.narcicgeteway.core.tor.TorController? = null
-    private var ssh: SshController? = null
 
     @Volatile
     private var sniSpoofEdge: String? = null
 
     /** True while this session holds the no-root SNI spoof engine (the profile points at 127.0.0.1:40443). */
     private var rstaHeld = false
-    private var openConnect: OpenConnectController? = null
-    private var sstp: dev.valid7996.narcicgeteway.core.sstp.SstpController? = null
     private var singBox: SingBoxEngine? = null
 
     private var singBoxLastUp = 0L
@@ -72,9 +65,6 @@ class NrgVpnService : VpnService() {
     private var kind: String = VpnManager.KIND_XRAY
 
     private var outerPsiphon: PsiphonController? = null
-    private var outerTor: dev.valid7996.narcicgeteway.core.tor.TorController? = null
-    private var outerSsh: SshController? = null
-    private var outerDnsTunnel: DnsTunnelController? = null
     private var crossOuterKind: String? = null
     private var crossInnerKind: String? = null
 
@@ -237,9 +227,7 @@ class NrgVpnService : VpnService() {
             proxyOnly = false
         }
 
-        if (kind == VpnManager.KIND_OPENCONNECT) { startOpenConnect(configJson, settings); return }
 
-        if (kind == VpnManager.KIND_SSTP) { startSstp(configJson, settings); return }
 
         if (kind == VpnManager.KIND_SINGBOX) { startSingBox(configJson, settings); return }
 
@@ -308,11 +296,6 @@ class NrgVpnService : VpnService() {
         when (kind) {
             VpnManager.KIND_PSIPHON -> startPsiphon(configJson, descriptor, tunMtu)
             VpnManager.KIND_AETHER -> startAether(configJson, descriptor, tunMtu)
-            VpnManager.KIND_DNS_TUNNEL -> startDnsTunnel(configJson, descriptor, tunMtu, settings)
-            VpnManager.KIND_MASTERDNS -> startMasterDns(configJson, descriptor, tunMtu, settings)
-            VpnManager.KIND_MHRV -> startMhrv(configJson, descriptor, tunMtu, settings)
-            VpnManager.KIND_TOR -> startTor(settings, descriptor, tunMtu)
-            VpnManager.KIND_SSH -> startSsh(configJson, descriptor, tunMtu, settings)
             VpnManager.KIND_SNISPOOF -> startSniSpoof(configJson, socksPort, descriptor, tunMtu)
             VpnManager.KIND_CROSS_CHAIN -> startCrossChain(configJson, descriptor, tunMtu, settings)
             else -> startXray(configJson, socksPort, descriptor, tunMtu)
@@ -467,8 +450,6 @@ class NrgVpnService : VpnService() {
         return arr.optJSONObject(0)
     }
 
-    private fun startSsh(
-        configJson: String,
         descriptor: ParcelFileDescriptor,
         tunMtu: Int,
         appSettings: AppSettings,
@@ -507,39 +488,7 @@ class NrgVpnService : VpnService() {
         }
     }
 
-    private fun startTor(settings: AppSettings, descriptor: ParcelFileDescriptor, tunMtu: Int) {
-        val bridged = java.util.concurrent.atomic.AtomicBoolean(false)
-        val dns = if (settings.remoteDnsMode == "custom") settings.remoteDnsPrimary.ifBlank { "8.8.8.8" } else "8.8.8.8"
-        val controller = dev.valid7996.narcicgeteway.core.tor.TorController(
-            context = this,
-            settings = settings,
-            onBootstrapped = {
-                if (bridged.compareAndSet(false, true)) {
-                    val shim = SocksTunBridge(
-                        listenHost = "127.0.0.1", listenPort = SHIM_PORT,
-                        upstreamHost = "127.0.0.1",
-                        upstreamPort = dev.valid7996.narcicgeteway.core.tor.TorConfigBuilder.SOCKS_PORT,
-                        dnsHost = dns,
-                    )
-                    socksShim = shim
-                    if (shim.start() && bridge(descriptor, SHIM_PORT, tunMtu, udpOverTcp = true)) {
-                        finishConnected()
-                    } else {
-                        stopEverything()
-                    }
-                }
-            },
-            onProgress = { pct -> LogBus.append("I/Tor bootstrap $pct%") },
-            onStopped = { reason ->
-                onTunnelFailed(reason)
-            },
-        )
-        tor = controller
-        if (!controller.start()) stopEverything() else armTorBootstrapDeadline(bridged)
-    }
 
-    private fun startDnsTunnel(
-        configJson: String,
         descriptor: ParcelFileDescriptor,
         tunMtu: Int,
         appSettings: AppSettings,
@@ -623,8 +572,6 @@ class NrgVpnService : VpnService() {
         finishConnected()
     }
 
-    private fun startMasterDns(
-        configJson: String,
         descriptor: ParcelFileDescriptor,
         tunMtu: Int,
         appSettings: AppSettings,
@@ -676,8 +623,6 @@ class NrgVpnService : VpnService() {
         }
     }
 
-    private fun startMhrv(
-        configJson: String,
         descriptor: ParcelFileDescriptor,
         tunMtu: Int,
         appSettings: AppSettings,
@@ -728,19 +673,7 @@ class NrgVpnService : VpnService() {
         finishConnected()
     }
 
-    private fun masterDnsError(c: MasterDnsController): String = when (val f = c.failure) {
-        is MasterDnsController.Failure.NoUsableResolver ->
-            getString(R.string.masterdns_no_resolver, f.tried)
-        is MasterDnsController.Failure.SessionRefused ->
-            getString(R.string.masterdns_session_refused, f.usable, f.reason.ifBlank { "—" })
-        is MasterDnsController.Failure.Stalled ->
-            getString(R.string.masterdns_stalled, f.checked, f.total, f.usable)
-        is MasterDnsController.Failure.Other ->
-            getString(R.string.masterdns_failed_reason, f.reason.take(200))
-        null -> getString(R.string.masterdns_failed)
-    }
 
-    private fun startOpenConnect(configJson: String, appSettings: AppSettings) {
         VpnManager.setActiveKind(kind)
         val profile = try {
             kotlinx.serialization.json.Json.decodeFromString(
@@ -767,7 +700,6 @@ class NrgVpnService : VpnService() {
         if (!controller.start()) stopEverything()
     }
 
-    private fun startSstp(configJson: String, appSettings: AppSettings) {
         VpnManager.setActiveKind(kind)
         advance(VpnNotifications.Stage.Engine)
         val profile = try {
@@ -1120,13 +1052,6 @@ class NrgVpnService : VpnService() {
     private fun protocolLabel(): String = when (kind) {
         VpnManager.KIND_PSIPHON -> "Psiphon"
         VpnManager.KIND_AETHER -> "Aether"
-        VpnManager.KIND_DNS_TUNNEL -> "DNS"
-        VpnManager.KIND_MASTERDNS -> "MasterDNS"
-        VpnManager.KIND_MHRV -> "MHRV Relay"
-        VpnManager.KIND_TOR -> "Tor"
-        VpnManager.KIND_SSH -> "SSH"
-        VpnManager.KIND_OPENCONNECT -> "OpenConnect"
-        VpnManager.KIND_SSTP -> "MS-SSTP"
         VpnManager.KIND_SINGBOX -> "sing-box"
         VpnManager.KIND_IKEV2 -> "IKEv2"
         VpnManager.KIND_SNISPOOF -> "Xray · SNI"
@@ -1138,11 +1063,6 @@ class NrgVpnService : VpnService() {
 
     private fun engineLabel(k: String?): String = when (k) {
         VpnManager.KIND_PSIPHON -> "Psiphon"
-        VpnManager.KIND_DNS_TUNNEL -> "DNS"
-        VpnManager.KIND_MASTERDNS -> "MasterDNS"
-        VpnManager.KIND_MHRV -> "MHRV Relay"
-        VpnManager.KIND_TOR -> "Tor"
-        VpnManager.KIND_SSH -> "SSH"
         else -> "Xray"
     }
 
@@ -1268,13 +1188,6 @@ class NrgVpnService : VpnService() {
                 delay(waited)
                 val running = when (kind) {
                     VpnManager.KIND_PSIPHON -> psiphon?.isRunning == true
-                    VpnManager.KIND_DNS_TUNNEL -> dnsTunnel?.isRunning == true
-                    VpnManager.KIND_MASTERDNS -> masterDns?.isRunning == true
-                    VpnManager.KIND_MHRV -> mhrv?.isRunning == true
-                    VpnManager.KIND_TOR -> tor?.isRunning == true
-                    VpnManager.KIND_SSH -> ssh?.isRunning == true
-                    VpnManager.KIND_OPENCONNECT -> openConnect?.isRunning == true
-                    VpnManager.KIND_SSTP -> sstp?.isRunning == true
                     VpnManager.KIND_SINGBOX -> singBox?.isRunning == true
                     // Aether had no branch here and fell through to Xray's: with the exit proxy down (or a command
                     // that dials out on its own) Xray never runs, so the tunnel was torn down at the first tick.
@@ -1311,9 +1224,6 @@ class NrgVpnService : VpnService() {
 
                     // The core and its carriers are processes of this app, so their sockets are the tunnel's own traffic.
                     VpnManager.KIND_PSIPHON, VpnManager.KIND_AETHER -> uidTrafficDelta()
-                    VpnManager.KIND_OPENCONNECT -> { openConnect?.pokeStats(); openConnect?.trafficDelta() ?: (0L to 0L) }
-                    VpnManager.KIND_SSTP -> sstp?.trafficDelta() ?: (0L to 0L)
-                    VpnManager.KIND_MHRV -> socksShim?.readDelta() ?: (0L to 0L)
 
                     VpnManager.KIND_SINGBOX -> singBox?.let { engine ->
                         val down = (engine.downlinkTotal - singBoxLastDown).coerceAtLeast(0)
@@ -1326,7 +1236,6 @@ class NrgVpnService : VpnService() {
                     else -> when (crossInnerKind) {
                         VpnManager.KIND_PSIPHON -> uidTrafficDelta()
                         VpnManager.KIND_DNS_TUNNEL, VpnManager.KIND_MASTERDNS,
-                        VpnManager.KIND_TOR, VpnManager.KIND_SSH ->
                             socksShim?.readDelta() ?: (0L to 0L)
                         else -> XrayController.readTrafficDelta()
                     }
@@ -1512,23 +1421,13 @@ class NrgVpnService : VpnService() {
         psiphon?.stop(); psiphon = null
         aether?.stop(); aether = null
         AetherSupport.releaseExit()
-        dnsTunnel?.stop(); dnsTunnel = null
-        masterDns?.stop(); masterDns = null
-        tor?.stop(); tor = null
-        ssh?.stop(); ssh = null
         if (rstaHeld) { RstaSpoofClient.release(this); rstaHeld = false } else RstaSpoofClient.stop(this)
-        openConnect?.stop(); openConnect = null
-        sstp?.stop(); sstp = null
         singBox?.stop(); singBox = null
         socksShim?.stop(); socksShim = null
         outerPsiphon?.stop(); outerPsiphon = null
-        outerTor?.stop(); outerTor = null
-        outerSsh?.stop(); outerSsh = null
-        outerDnsTunnel?.stop(); outerDnsTunnel = null
         ZepTunCore.stop()
         HevTunCore.stop()
         // After the TUN bridges: the native core must have no live connections when it is stopped.
-        mhrv?.stop(); mhrv = null
         XrayController.stop()
     }
 
@@ -1676,10 +1575,6 @@ class NrgVpnService : VpnService() {
 
     private fun engineAlive(k: String?, outer: Boolean): Boolean = when (k) {
         VpnManager.KIND_PSIPHON -> (if (outer) outerPsiphon else psiphon)?.isRunning == true
-        VpnManager.KIND_DNS_TUNNEL -> (if (outer) outerDnsTunnel else dnsTunnel)?.isRunning == true
-        VpnManager.KIND_MASTERDNS -> masterDns?.isRunning == true
-        VpnManager.KIND_TOR -> (if (outer) outerTor else tor)?.isRunning == true
-        VpnManager.KIND_SSH -> (if (outer) outerSsh else ssh)?.isRunning == true
         else -> XrayController.isRunning
     }
 
@@ -1734,7 +1629,6 @@ class NrgVpnService : VpnService() {
                 outerPsiphon = c
                 if (!c.start()) { onReady(-1) }
             }
-            VpnManager.KIND_TOR -> {
                 val bridged = java.util.concurrent.atomic.AtomicBoolean(false)
                 val c = dev.valid7996.narcicgeteway.core.tor.TorController(
                     context = this,
@@ -1750,7 +1644,6 @@ class NrgVpnService : VpnService() {
                 outerTor = c
                 if (!c.start()) onReady(-1) else armTorBootstrapDeadline(bridged)
             }
-            VpnManager.KIND_SSH -> {
                 val p = runCatching {
                     kotlinx.serialization.json.Json.decodeFromString(
                         dev.valid7996.narcicgeteway.domain.config.SshProfile.serializer(), config,
@@ -1768,7 +1661,6 @@ class NrgVpnService : VpnService() {
                     onReady(c.start())
                 }
             }
-            VpnManager.KIND_DNS_TUNNEL -> {
                 val p = runCatching {
                     kotlinx.serialization.json.Json.decodeFromString(
                         dev.valid7996.narcicgeteway.domain.config.DnsTunnelProfile.serializer(), config,
@@ -1824,7 +1716,6 @@ class NrgVpnService : VpnService() {
         }
 
         when (innerKind) {
-            VpnManager.KIND_DNS_TUNNEL -> {
                 val p = runCatching {
                     kotlinx.serialization.json.Json.decodeFromString(
                         dev.valid7996.narcicgeteway.domain.config.DnsTunnelProfile.serializer(), config,
@@ -1846,7 +1737,6 @@ class NrgVpnService : VpnService() {
                     bridgeThroughShim(c.start())
                 }
             }
-            VpnManager.KIND_SSH -> {
                 val p = runCatching {
                     kotlinx.serialization.json.Json.decodeFromString(
                         dev.valid7996.narcicgeteway.domain.config.SshProfile.serializer(), config,
@@ -1867,7 +1757,6 @@ class NrgVpnService : VpnService() {
                     bridgeThroughShim(c.start())
                 }
             }
-            VpnManager.KIND_TOR -> {
                 val bridged = java.util.concurrent.atomic.AtomicBoolean(false)
                 val c = dev.valid7996.narcicgeteway.core.tor.TorController(
                     context = this,

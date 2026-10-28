@@ -238,20 +238,7 @@ object AmneziaLink {
         }
     }
 
-    private fun ikev2LinkFrom(fields: JsonObject, fallbackHost: String, label: String): String? {
-        val host = fields.string("hostName")?.takeIf { it.isNotBlank() }
-            ?: fallbackHost.takeIf { it.isNotBlank() }
-            ?: return null
-        val user = fields.string("userName")?.takeIf { it.isNotBlank() } ?: return null
-        val password = fields.string("password").orEmpty()
-        val profile = Ikev2Profile(
-            server = host,
-            authType = Ikev2Auth.EAP_MSCHAPV2,
-            username = user,
-            password = if (password.isNotEmpty()) Ikev2Profile.sealPassword(password) else "",
-        )
-        return NrgLink.build(label, ProfileSource.Ikev2(profile))
-    }
+    private fun ikev2LinkFrom(fields: JsonObject, fallbackHost: String, label: String): String? = null
 
     private fun socksLinkFrom(fields: JsonObject, fallbackHost: String, label: String): String? {
         val host = fields.string("hostName")?.takeIf { it.isNotBlank() }

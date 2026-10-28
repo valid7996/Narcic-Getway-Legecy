@@ -52,7 +52,7 @@ import dev.valid7996.narcicgeteway.ui.theme.resetPersonalization
 
 enum class SettingsPage {
     Root, Ui, Vpn, Core, Routing, PerApp, Mux, Fragment, Observatory, Advanced, Mode, Assets, SingBox,
-    DnsProtocols, Tor, TorBridges, Ssh, Support, Privacy, Monitor, Ai, AiChat, IpScanner, TelegramProxy, Patt, Backup,
+    Support, Privacy, Monitor, Ai, AiChat, IpScanner, Patt, Backup,
 }
 
 @Composable
@@ -75,7 +75,7 @@ fun SettingsScreen(
     var showDeviceCode by rememberSaveable { mutableStateOf(false) }
 
     val goUp: () -> Unit = {
-        page = if (page == SettingsPage.TorBridges) SettingsPage.Tor else SettingsPage.Root
+        page = SettingsPage.Root
     }
 
     if (showAbout) AboutSheet(onDismiss = { showAbout = false })
@@ -136,11 +136,7 @@ fun SettingsScreen(
             SettingsPage.Routing -> RoutingScreen(settings, contentPadding, onUpdate, modifier, serverTargets)
             SettingsPage.PerApp -> PerAppProxyScreen(settings, contentPadding, onUpdate, modifier)
             SettingsPage.Assets -> AssetsScreen(settings, contentPadding, modifier, onUpdate)
-            SettingsPage.DnsProtocols -> DnsProtocolsPage(settings, contentPadding, modifier, onUpdate)
-            SettingsPage.Tor -> TorPage(settings, contentPadding, modifier, onUpdate) { page = it }
-            SettingsPage.TorBridges -> TorBridgesScreen(settings, contentPadding, modifier, onUpdate)
-            SettingsPage.Ssh -> SshPage(settings, contentPadding, modifier, onUpdate)
-            SettingsPage.Support -> SupportPage(contentPadding, modifier)
+                                    SettingsPage.Support -> SupportPage(contentPadding, modifier)
             SettingsPage.Privacy -> PrivacyPage(contentPadding, modifier)
             SettingsPage.Monitor -> LiveMonitorPage(contentPadding, modifier)
             SettingsPage.Ai -> ai?.let {
@@ -177,12 +173,7 @@ fun SettingsScreen(
                 contentPadding = contentPadding,
                 modifier = modifier,
             )
-            SettingsPage.TelegramProxy -> TelegramProxyScreen(
-                settings = settings,
-                contentPadding = contentPadding,
-                modifier = modifier,
-            )
-            SettingsPage.Patt -> dev.valid7996.narcicgeteway.ui.settings.patt.PattScreen(
+SettingsPage.Patt -> dev.valid7996.narcicgeteway.ui.settings.patt.PattScreen(
                 contentPadding = contentPadding,
                 settings = settings,
                 onUpdateSettings = onUpdate,
@@ -206,7 +197,6 @@ fun SettingsScreen(
 
 private fun pageDepth(page: SettingsPage): Int = when (page) {
     SettingsPage.Root -> 0
-    SettingsPage.TorBridges -> 2
     else -> 1
 }
 
@@ -287,13 +277,7 @@ private fun RootPage(
                 leadingIcon = Res.drawable.ic_speedometer,
                 iconTint = Color(0xFF007AFF),
             ) { onOpen(SettingsPage.IpScanner) }
-            SettingsDivider()
-            SettingsMenuRow(
-                stringResource(Res.string.tools_telegram_proxies_title),
-                stringResource(Res.string.tools_telegram_proxies_sub),
-                leadingIcon = Res.drawable.ic_public,
-                iconTint = Color(0xFF34C759),
-            ) { onOpen(SettingsPage.TelegramProxy) }
+            
             SettingsDivider()
             SettingsMenuRow(
                 stringResource(Res.string.tools_patts_title),
@@ -361,30 +345,7 @@ private fun RootPage(
             }
         }
 
-        if (dev.valid7996.narcicgeteway.ui.navigation.NavConfig.SHOW_ALL_SETTINGS || dev.valid7996.narcicgeteway.ui.navigation.NavConfig.SHOW_TUNNELS) SettingsGroup(
-            stringResource(Res.string.title_tunnels_settings),
-        ) {
-            SettingsMenuRow(
-                stringResource(Res.string.title_dns_protocols),
-                stringResource(Res.string.summary_dns_protocols),
-                leadingIcon = Res.drawable.ic_dns,
-                iconTint = Color(0xFF32ADE6),
-            ) { onOpen(SettingsPage.DnsProtocols) }
-            SettingsDivider()
-            SettingsMenuRow(
-                stringResource(Res.string.title_tor_settings),
-                stringResource(Res.string.summary_tor_settings),
-                leadingIcon = Res.drawable.ic_lock,
-                iconTint = Color(0xFFAF52DE),
-            ) { onOpen(SettingsPage.Tor) }
-            SettingsDivider()
-            SettingsMenuRow(
-                stringResource(Res.string.title_ssh_settings),
-                stringResource(Res.string.summary_ssh_settings),
-                leadingIcon = Res.drawable.ic_encrypted,
-                iconTint = Color(0xFF48484A),
-            ) { onOpen(SettingsPage.Ssh) }
-        }
+        
 
         SettingsGroup(
             stringResource(Res.string.title_core_settings),
@@ -509,374 +470,6 @@ private fun RootPage(
 
         if (showLogs) LogSheet(onDismiss = { showLogs = false })
         if (showRstaSpoof) RstaSpoofSheet(settings = settings, onUpdate = { updated -> onUpdate { updated } }, onDismiss = { showRstaSpoof = false })
-    }
-}
-
-@Composable
-private fun DnsProtocolsPage(
-    s: AppSettings,
-    contentPadding: PaddingValues,
-    modifier: Modifier,
-    onUpdate: ((AppSettings) -> AppSettings) -> Unit,
-) {
-    SettingsPageScaffold(
-        title = stringResource(Res.string.title_dns_protocols),
-        contentPadding = contentPadding,
-        modifier = modifier,
-    ) {
-        SettingsGroup {
-            SettingsInfoRow(
-                stringResource(Res.string.dns_protocols_about_title),
-                stringResource(Res.string.dns_protocols_about_body),
-            )
-        }
-
-        SettingsGroup(stringResource(Res.string.dns_global_resolver_group)) {
-            SettingsSwitchRow(
-                title = stringResource(Res.string.dns_override),
-                summary = stringResource(Res.string.dns_override_sum),
-                checked = s.dnsGlobalResolverEnabled,
-                onCheckedChange = { v -> onUpdate { it.copy(dnsGlobalResolverEnabled = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsEditRow(
-                title = stringResource(Res.string.dns_resolver_ips),
-                value = s.dnsGlobalResolvers,
-                enabled = s.dnsGlobalResolverEnabled,
-                placeholder = "8.8.8.8, 1.1.1.1",
-                onValueChanged = { v -> onUpdate { it.copy(dnsGlobalResolvers = v) } },
-            )
-        }
-
-        SettingsGroup(stringResource(Res.string.dns_pool_group)) {
-            SettingsSwitchRow(
-                title = stringResource(Res.string.dns_pool_enable),
-                summary = stringResource(Res.string.dns_pool_enable_sum),
-                checked = s.dnsPoolEnabled,
-                onCheckedChange = { v -> onUpdate { it.copy(dnsPoolEnabled = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsEditRow(
-                title = stringResource(Res.string.dns_pool_list),
-                value = s.dnsPoolText,
-                enabled = s.dnsPoolEnabled,
-                placeholder = "8.8.8.8\n1.1.1.1",
-                onValueChanged = { v -> onUpdate { it.copy(dnsPoolText = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsSwitchRow(
-                title = stringResource(Res.string.dns_pool_verify),
-                summary = stringResource(
-                    if (s.dnsPoolFullVerification) Res.string.dns_pool_verify_on else Res.string.dns_pool_verify_off,
-                ),
-                enabled = s.dnsPoolEnabled,
-                checked = s.dnsPoolFullVerification,
-                onCheckedChange = { v -> onUpdate { it.copy(dnsPoolFullVerification = v) } },
-            )
-        }
-
-        SettingsGroup(stringResource(Res.string.dns_remote_group)) {
-            SettingsListRow(
-                title = stringResource(Res.string.dns_remote_server),
-                options = listOf(
-                    "default" to stringResource(Res.string.dns_remote_default),
-                    "custom" to stringResource(Res.string.dns_remote_custom),
-                ),
-                selected = s.remoteDnsMode,
-                onSelected = { v -> onUpdate { it.copy(remoteDnsMode = v) } },
-            )
-            if (s.remoteDnsMode == "custom") {
-                SettingsDivider(hasIcon = false)
-                SettingsEditRow(
-                    title = stringResource(Res.string.dns_remote_primary), value = s.remoteDnsPrimary, placeholder = "9.9.9.9",
-                    onValueChanged = { v -> onUpdate { it.copy(remoteDnsPrimary = v) } },
-                )
-                SettingsDivider(hasIcon = false)
-                SettingsEditRow(
-                    title = stringResource(Res.string.dns_remote_fallback), value = s.remoteDnsFallback, placeholder = "8.8.8.8",
-                    onValueChanged = { v -> onUpdate { it.copy(remoteDnsFallback = v) } },
-                )
-            }
-        }
-
-        SettingsGroup(stringResource(Res.string.dns_behaviour_group)) {
-            SettingsListRow(
-                title = stringResource(Res.string.dns_workers),
-                options = listOf(
-                    "per_query" to stringResource(Res.string.dns_workers_per_query),
-                    "two" to stringResource(Res.string.dns_workers_2),
-                    "three" to stringResource(Res.string.dns_workers_3),
-                    "five" to stringResource(Res.string.dns_workers_5),
-                ),
-                selected = s.dnsWorkerMode,
-                onSelected = { v -> onUpdate { it.copy(dnsWorkerMode = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsInfoRow(
-                title = stringResource(Res.string.dns_prevent_fallback),
-                body = stringResource(Res.string.dns_prevent_fallback_always),
-            )
-        }
-    }
-}
-
-@Composable
-private fun TorPage(
-    s: AppSettings,
-    contentPadding: PaddingValues,
-    modifier: Modifier,
-    onUpdate: ((AppSettings) -> AppSettings) -> Unit,
-    onOpen: (SettingsPage) -> Unit,
-) {
-    SettingsPageScaffold(
-        title = stringResource(Res.string.title_tor_settings),
-        contentPadding = contentPadding,
-        modifier = modifier,
-    ) {
-        SettingsGroup(stringResource(Res.string.tor_bridges_group)) {
-            SettingsListRow(
-                title = stringResource(Res.string.tor_bridges_mode),
-                options = listOf(
-                    "none" to stringResource(Res.string.tor_bridges_none),
-                    "default" to stringResource(Res.string.tor_bridges_default),
-                    "own" to stringResource(Res.string.tor_bridges_own),
-                ),
-                selected = s.torBridgesMode,
-                onSelected = { v -> onUpdate { it.copy(torBridgesMode = v) } },
-            )
-            if (s.torBridgesMode != "none") {
-                val transports = if (s.torBridgesMode == "own") {
-                    listOf("obfs4", "obfs3", "scramblesuit", "meek_lite", "snowflake", "conjure", "webtunnel", "vanilla")
-                } else {
-                    listOf("obfs4", "obfs3", "meek_lite", "snowflake", "conjure", "webtunnel", "vanilla")
-                }
-                SettingsDivider(hasIcon = false)
-                SettingsListRow(
-                    title = stringResource(Res.string.tor_bridge_transport),
-                    options = transports.map { it to it },
-                    selected = s.torBridgeTransport,
-                    onSelected = { v -> onUpdate { it.copy(torBridgeTransport = v) } },
-                )
-                if (s.torBridgeTransport == "snowflake") {
-                    SettingsDivider(hasIcon = false)
-                    SettingsListRow(
-                        title = stringResource(Res.string.tor_rendezvous),
-                        options = listOf("amp" to "AMP", "cdn77" to "CDN77", "amazon" to "AMAZON"),
-                        selected = s.torSnowflakeRendezvous,
-                        onSelected = { v -> onUpdate { it.copy(torSnowflakeRendezvous = v) } },
-                    )
-                    SettingsDivider(hasIcon = false)
-                    SettingsEditRow(
-                        title = stringResource(Res.string.tor_snowflake_stun_hint),
-                        value = s.torSnowflakeStun,
-                        onValueChanged = { v -> onUpdate { it.copy(torSnowflakeStun = v) } },
-                    )
-                }
-                if (s.torBridgesMode == "own") {
-                    SettingsDivider(hasIcon = false)
-                    SettingsEditRow(
-                        title = stringResource(Res.string.tor_own_bridges),
-                        value = s.torOwnBridges,
-                        placeholder = "obfs4 1.2.3.4:443 CERT… iat-mode=0",
-                        onValueChanged = { v -> onUpdate { it.copy(torOwnBridges = v) } },
-                    )
-                } else {
-                    SettingsDivider(hasIcon = false)
-                    SettingsMenuRow(
-                        stringResource(Res.string.tor_bridges_title),
-                        stringResource(Res.string.tor_bridges_browse_sum),
-                    ) { onOpen(SettingsPage.TorBridges) }
-                }
-            }
-        }
-
-        SettingsGroup(stringResource(Res.string.tor_nodes_group)) {
-            SettingsEditRow(
-                title = stringResource(Res.string.tor_entry_nodes_t),
-                value = s.torEntryNodes, placeholder = "{de},{nl}",
-                onValueChanged = { v -> onUpdate { it.copy(torEntryNodes = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsEditRow(
-                title = stringResource(Res.string.tor_exit_nodes_t),
-                value = s.torExitNodes, placeholder = "{us},{gb}",
-                onValueChanged = { v -> onUpdate { it.copy(torExitNodes = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsEditRow(
-                title = stringResource(Res.string.tor_exclude_nodes_t),
-                value = s.torExcludeNodes, placeholder = "{ru},{cn}",
-                onValueChanged = { v -> onUpdate { it.copy(torExcludeNodes = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsEditRow(
-                title = stringResource(Res.string.tor_exclude_exit_nodes_t),
-                value = s.torExcludeExitNodes, placeholder = "{ru},{cn}",
-                onValueChanged = { v -> onUpdate { it.copy(torExcludeExitNodes = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsSwitchRow(
-                title = stringResource(Res.string.tor_strict_nodes_t),
-                summary = stringResource(Res.string.tor_strict_nodes_t_sum),
-                checked = s.torStrictNodes,
-                onCheckedChange = { v -> onUpdate { it.copy(torStrictNodes = v) } },
-            )
-        }
-
-        SettingsGroup(stringResource(Res.string.tor_common_group)) {
-            SettingsEditRow(
-                title = stringResource(Res.string.tor_virtual_addr), value = s.torVirtualAddrNetwork,
-                onValueChanged = { v -> onUpdate { it.copy(torVirtualAddrNetwork = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsSwitchRow(
-                title = stringResource(Res.string.tor_hardware_accel),
-                summary = stringResource(Res.string.tor_hardware_accel_sum),
-                checked = s.torHardwareAccel,
-                onCheckedChange = { v -> onUpdate { it.copy(torHardwareAccel = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsSwitchRow(
-                title = stringResource(Res.string.tor_avoid_disk),
-                summary = stringResource(Res.string.tor_avoid_disk_sum),
-                checked = s.torAvoidDiskWrites,
-                onCheckedChange = { v -> onUpdate { it.copy(torAvoidDiskWrites = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsSwitchRow(
-                title = stringResource(Res.string.tor_conn_padding),
-                summary = stringResource(Res.string.tor_conn_padding_sum),
-                checked = s.torConnectionPadding,
-                onCheckedChange = { v -> onUpdate { it.copy(torConnectionPadding = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsSwitchRow(
-                title = stringResource(Res.string.tor_reduced_padding),
-                summary = stringResource(Res.string.tor_reduced_padding_sum),
-                checked = s.torReducedConnectionPadding,
-                onCheckedChange = { v -> onUpdate { it.copy(torReducedConnectionPadding = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsSwitchRow(
-                title = stringResource(Res.string.tor_fascist),
-                summary = stringResource(Res.string.tor_fascist_sum),
-                checked = s.torFascistFirewall,
-                onCheckedChange = { v -> onUpdate { it.copy(torFascistFirewall = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            IntEditRow(stringResource(Res.string.tor_new_circuit), s.torNewCircuitPeriod) { v -> onUpdate { it.copy(torNewCircuitPeriod = v) } }
-            SettingsDivider(hasIcon = false)
-            IntEditRow(stringResource(Res.string.tor_max_dirtiness), s.torMaxCircuitDirtiness) { v -> onUpdate { it.copy(torMaxCircuitDirtiness = v) } }
-            SettingsDivider(hasIcon = false)
-            IntEditRow(stringResource(Res.string.tor_dormant_timeout), s.torDormantClientTimeout) { v -> onUpdate { it.copy(torDormantClientTimeout = v) } }
-            SettingsDivider(hasIcon = false)
-            SettingsSwitchRow(
-                title = stringResource(Res.string.tor_distinct_subnets),
-                summary = stringResource(Res.string.tor_distinct_subnets_sum),
-                checked = s.torEnforceDistinctSubnets,
-                onCheckedChange = { v -> onUpdate { it.copy(torEnforceDistinctSubnets = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsSwitchRow(
-                title = stringResource(Res.string.tor_track_host),
-                summary = stringResource(Res.string.tor_track_host_sum),
-                checked = s.torTrackHostExits,
-                onCheckedChange = { v -> onUpdate { it.copy(torTrackHostExits = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsSwitchRow(
-                title = stringResource(Res.string.tor_client_ipv4), checked = s.torClientUseIPv4,
-                onCheckedChange = { v -> onUpdate { it.copy(torClientUseIPv4 = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsSwitchRow(
-                title = stringResource(Res.string.tor_client_ipv6), checked = s.torClientUseIPv6,
-                onCheckedChange = { v -> onUpdate { it.copy(torClientUseIPv6 = v) } },
-            )
-        }
-
-        SettingsGroup(stringResource(Res.string.tor_isolation_group)) {
-            SettingsSwitchRow(
-                title = stringResource(Res.string.tor_isolate_addr_t),
-                summary = stringResource(Res.string.tor_isolate_addr_t_sum),
-                checked = s.torIsolateDestAddr,
-                onCheckedChange = { v -> onUpdate { it.copy(torIsolateDestAddr = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsSwitchRow(
-                title = stringResource(Res.string.tor_isolate_port_t),
-                summary = stringResource(Res.string.tor_isolate_port_t_sum),
-                checked = s.torIsolateDestPort,
-                onCheckedChange = { v -> onUpdate { it.copy(torIsolateDestPort = v) } },
-            )
-        }
-
-        SettingsGroup(stringResource(Res.string.tor_advanced_group)) {
-            SettingsSwitchRow(
-                title = stringResource(Res.string.tor_fake_sni),
-                summary = stringResource(Res.string.tor_fake_sni_sum),
-                checked = s.torFakeSniEnabled,
-                onCheckedChange = { v -> onUpdate { it.copy(torFakeSniEnabled = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsEditRow(
-                title = stringResource(Res.string.tor_fake_sni_hosts),
-                value = s.torFakeSniHosts,
-                enabled = s.torFakeSniEnabled,
-                placeholder = "play.googleapis.com, drive.google.com (blank = defaults)",
-                onValueChanged = { v -> onUpdate { it.copy(torFakeSniHosts = v) } },
-            )
-        }
-    }
-}
-
-@Composable
-private fun IntEditRow(title: String, value: Int, onChange: (Int) -> Unit) {
-    SettingsEditRow(
-        title = title,
-        value = value.toString(),
-        numeric = true,
-        onValueChanged = { it.toIntOrNull()?.let(onChange) },
-    )
-}
-
-@Composable
-private fun SshPage(
-    s: AppSettings,
-    contentPadding: PaddingValues,
-    modifier: Modifier,
-    onUpdate: ((AppSettings) -> AppSettings) -> Unit,
-) {
-    SettingsPageScaffold(
-        title = stringResource(Res.string.title_ssh_settings),
-        contentPadding = contentPadding,
-        modifier = modifier,
-    ) {
-        SettingsGroup {
-            SettingsListRow(
-                title = stringResource(Res.string.ssh_cipher),
-                options = listOf(
-                    "auto" to stringResource(Res.string.ssh_cipher_auto),
-                    "aes128-gcm@openssh.com" to "AES-128-GCM",
-                    "chacha20-poly1305@openssh.com" to "ChaCha20-Poly1305",
-                    "aes256-gcm@openssh.com" to "AES-256-GCM",
-                    "aes128-ctr" to stringResource(Res.string.ssh_cipher_legacy),
-                ),
-                selected = s.sshCipher,
-                onSelected = { v -> onUpdate { it.copy(sshCipher = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            SettingsSwitchRow(
-                title = stringResource(Res.string.ssh_compression),
-                summary = stringResource(Res.string.ssh_compression_sum),
-                checked = s.sshCompression,
-                onCheckedChange = { v -> onUpdate { it.copy(sshCompression = v) } },
-            )
-            SettingsDivider(hasIcon = false)
-            IntEditRow(stringResource(Res.string.ssh_max_channels), s.sshMaxChannels) { v ->
-                onUpdate { it.copy(sshMaxChannels = v.coerceIn(1, 64)) }
-            }
-        }
     }
 }
 

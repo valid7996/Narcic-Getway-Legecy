@@ -130,54 +130,10 @@ internal fun CardActionHosts(
                     },
                 )
             }
-            target.isDnsTunnel -> {
-                DnsTunnelSheet(
-                    initial = target.dnsTunnelSettings(),
-                    initialName = target.name,
-                    onDismiss = onDismissEdit,
-                    onSave = { name, settings ->
-                        repository.addDnsTunnel(settings, name, id = target.id)
-                        toastSaved()
-                        onDismissEdit()
-                    },
-                )
-            }
-            target.isMasterDns -> {
-                MasterDnsSheet(
-                    initial = target.masterDnsSettings(),
-                    initialName = target.name,
-                    onDismiss = onDismissEdit,
-                    onSave = { name, settings ->
-                        repository.addMasterDns(settings, name, id = target.id)
-                        toastSaved()
-                        onDismissEdit()
-                    },
-                )
-            }
-            target.isMhrvRelay -> {
-                MhrvRelaySheet(
-                    initial = target.mhrvRelaySettings(),
-                    initialName = target.name,
-                    onDismiss = onDismissEdit,
-                    onSave = { name, settings ->
-                        repository.addMhrvRelay(settings, name, id = target.id)
-                        toastSaved()
-                        onDismissEdit()
-                    },
-                )
-            }
-            target.isOpenConnect -> {
-                OpenConnectSheet(
-                    initial = target.openConnectSettings(),
-                    initialName = target.name,
-                    onDismiss = onDismissEdit,
-                    onSave = { name, settings ->
-                        repository.addOpenConnect(settings, name, id = target.id)
-                        toastSaved()
-                        onDismissEdit()
-                    },
-                )
-            }
+            
+            
+            
+            
             target.isAether -> {
                 AetherSheet(
                     initial = target.aetherSettings(),
@@ -190,18 +146,7 @@ internal fun CardActionHosts(
                     },
                 )
             }
-            target.isSstp -> {
-                SstpSheet(
-                    initial = target.sstpSettings(),
-                    initialName = target.name,
-                    onDismiss = onDismissEdit,
-                    onSave = { name, settings ->
-                        repository.addSstp(settings, name, id = target.id)
-                        toastSaved()
-                        onDismissEdit()
-                    },
-                )
-            }
+            
             target.isSniSpoof -> {
                 SniSpoofSheet(
                     candidates = spoofCandidates,
@@ -245,20 +190,7 @@ internal fun CardActionHosts(
                     },
                 )
             }
-            target.isSsh -> {
-                SshSheet(
-                    initial = target.sshSettings(),
-                    initialName = target.name,
-                    onDismiss = onDismissEdit,
-                    onSave = { name, settings ->
-                        repository.update(
-                            VpnProfile.fromSsh(settings = settings, id = target.id, addedAt = target.addedAt, name = name),
-                        )
-                        toastSaved()
-                        onDismissEdit()
-                    },
-                )
-            }
+            
             else -> {
                 val parsed = remember(target.id) {
                     target.rawPayload()?.let { payload ->
