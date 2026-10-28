@@ -156,7 +156,6 @@ class NrgVpnService : VpnService() {
                     return START_NOT_STICKY
                 }
 
-                if (Ikev2Controller.isActive) Ikev2Controller.stop(this)
 
                 resetSessionState()
                 stage = VpnNotifications.Stage.Preparing
@@ -168,13 +167,6 @@ class NrgVpnService : VpnService() {
                 }
             }
             command == VpnManager.CMD_STOP -> {
-                // The notification's Disconnect button also lands here for IKEv2 sessions, which the
-                // platform runs: there is no tunnel of ours to tear down, only the platform profile.
-                if (Ikev2Controller.isActive) {
-                    Ikev2Controller.stop(this)
-                    stopSelf()
-                    return START_NOT_STICKY
-                }
                 userStop = true
                 stopEverything()
             }
@@ -196,7 +188,6 @@ class NrgVpnService : VpnService() {
             startInForeground(if (connected) connectedNotification(0, 0, 0, 0) else connectingNotification())
             return
         }
-        if (Ikev2Controller.isActive) Ikev2Controller.stop(this)
         resetSessionState()
         val container = (application as dev.valid7996.narcicgeteway.NrgSecureApp).container
         remark = container.configRepository.activeProfile()?.name.orEmpty()
@@ -215,10 +206,6 @@ class NrgVpnService : VpnService() {
                     kind = plan.kind
                     proxyOnly = plan.proxyOnly
                     startTunnel(plan.configJson, plan.socksPort, plan.kind)
-                }
-                is StartPlanner.Plan.Ikev2 -> {
-                    VpnManager.onError(getString(R.string.engine_ikev2_needs_app))
-                    stopEverything()
                 }
                 is StartPlanner.Plan.Failure -> {
                     VpnManager.onError(plan.message)

@@ -74,7 +74,6 @@ import dev.valid7996.narcicgeteway.ui.servers.DnsTunnelSheet
 import dev.valid7996.narcicgeteway.ui.servers.MasterDnsSheet
 import dev.valid7996.narcicgeteway.ui.servers.MhrvRelaySheet
 import dev.valid7996.narcicgeteway.ui.servers.OpenConnectSheet
-import dev.valid7996.narcicgeteway.ui.servers.Ikev2Sheet
 import dev.valid7996.narcicgeteway.ui.servers.SstpSheet
 import dev.valid7996.narcicgeteway.ui.servers.SshSheet
 import dev.valid7996.narcicgeteway.ui.theme.Personalization
@@ -146,8 +145,7 @@ internal fun HomeServerSection(
     var showMasterDns by remember { mutableStateOf(false) }
     var showMhrv by remember { mutableStateOf(false) }
     var showOpenConnect by remember { mutableStateOf(false) }
-    var showIkev2 by remember { mutableStateOf(false) }
-    var showSstp by remember { mutableStateOf(false) }
+        var showSstp by remember { mutableStateOf(false) }
     var showSsh by remember { mutableStateOf(false) }
     var showIpScanner by remember { mutableStateOf(false) }
     var showTelegramProxy by remember { mutableStateOf(false) }
@@ -785,10 +783,6 @@ internal fun HomeServerSection(
                 showAdd = false
                 showOpenConnect = true
             },
-            onIkev2 = {
-                showAdd = false
-                showIkev2 = true
-            },
             onSstp = {
                 showAdd = false
                 showSstp = true
@@ -959,16 +953,6 @@ internal fun HomeServerSection(
             onSave = { name, s ->
                 showOpenConnect = false
                 repository.addOpenConnect(s, name)
-            },
-        )
-    }
-
-    if (showIkev2) {
-        Ikev2Sheet(
-            onDismiss = { showIkev2 = false },
-            onSave = { name, s ->
-                showIkev2 = false
-                repository.addIkev2(s, name)
             },
         )
     }

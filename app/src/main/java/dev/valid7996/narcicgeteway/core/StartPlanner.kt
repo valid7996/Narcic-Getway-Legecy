@@ -42,8 +42,6 @@ class StartPlanner(context: Context) {
             val proxyOnly: Boolean,
         ) : Plan
 
-        data class Ikev2(val remark: String, val profile: Ikev2Profile) : Plan
-
         data class Failure(val message: String) : Plan
     }
 
@@ -57,7 +55,7 @@ class StartPlanner(context: Context) {
             return Plan.Failure(appContext.getString(R.string.zsx_expired))
         }
         val effective = profile.resolveUnsealed() ?: profile
-        effective.ikev2Settings()?.let { return Plan.Ikev2(profile.name, it) }
+        effective.ikev2Settings()?.let { return Plan.Failure(appContext.getString(R.string.ikev2_requires_android11)) }
         effective.mhrvRelaySettings()?.let {
             if (!it.isValid) return Plan.Failure(appContext.getString(R.string.mhrv_missing_creds))
         }

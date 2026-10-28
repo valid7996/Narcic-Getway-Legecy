@@ -41,7 +41,7 @@ class NrgWidgetProvider : AppWidgetProvider() {
     private fun toggle(ctx: Context) {
         val state = VpnManager.status.value.state
         if (state.isActive || state.isTransitioning) {
-            if (Ikev2Controller.isActive) Ikev2Controller.stop(ctx) else AndroidVpn.stop(ctx)
+            AndroidVpn.stop(ctx)
             refresh(ctx, force = true)
         }
     }

@@ -60,21 +60,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-    private var pendingIkev2Remark: String? = null
-    private val ikev2ConsentLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            val remark = pendingIkev2Remark
-            pendingIkev2Remark = null
-            if (result.resultCode == RESULT_OK && remark != null) {
-                lifecycleScope.launch(Dispatchers.IO) {
-                    dev.valid7996.narcicgeteway.core.Ikev2Controller.startProvisioned(this@MainActivity, remark)
-                }
-            } else {
-                dev.valid7996.narcicgeteway.core.Ikev2Controller.forgetProvisionedProfile(this)
-                VpnManager.onDisconnected()
-                if (result.resultCode != RESULT_OK) toast(getString(R.string.vpn_permission_denied))
-            }
-        }
+
 
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -192,7 +178,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        runCatching { dev.valid7996.narcicgeteway.core.Ikev2Controller.resync(this) }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -250,7 +235,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        dev.valid7996.narcicgeteway.core.Ikev2CertBridgeAndroid.install(this)
         dev.valid7996.narcicgeteway.core.CertImportAndroid.installer = ::installCredential
         dev.valid7996.narcicgeteway.core.CertImportAndroid.install()
         maybeRequestNotificationPermission()
@@ -363,10 +347,6 @@ class MainActivity : ComponentActivity() {
     private fun toggleConnection() {
         val state = VpnManager.status.value.state
         if (state.isActive || state.isTransitioning) {
-            if (dev.valid7996.narcicgeteway.core.Ikev2Controller.isActive) {
-                dev.valid7996.narcicgeteway.core.Ikev2Controller.stop(this)
-                return
-            }
             AndroidVpn.stop(this)
             return
         }
@@ -384,7 +364,6 @@ class MainActivity : ComponentActivity() {
                 planning = false
             }
             when (plan) {
-                is StartPlanner.Plan.Ikev2 -> startIkev2(plan.remark, plan.profile)
                 is StartPlanner.Plan.Failure -> toast(plan.message)
                 is StartPlanner.Plan.Start -> {
                     if (plan.proxyOnly) {
@@ -403,45 +382,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun startIkev2(remark: String, ikev2: dev.valid7996.narcicgeteway.domain.config.Ikev2Profile) {
-        val controller = dev.valid7996.narcicgeteway.core.Ikev2Controller
-        if (!controller.isSupportedSdk) {
-            toast(getString(R.string.ikev2_requires_android11))
-            return
-        }
-        if (!controller.isSupported(this)) {
-            toast(getString(R.string.ikev2_requires_ipsec))
-            return
-        }
-
-        if (VpnManager.status.value.state.isActive) AndroidVpn.stop(this)
-        VpnManager.onStarting(remark)
-
-        controller.note("connect requested for $remark (server=${ikev2.server}, auth=${ikev2.effectiveAuth})")
-        lifecycleScope.launch(Dispatchers.IO) {
-            val consent = try {
-                controller.provision(this@MainActivity, ikev2)
-            } catch (e: dev.valid7996.narcicgeteway.core.Ikev2Exception) {
-                controller.note("provision refused", e.cause ?: e)
-                withContext(Dispatchers.Main) { VpnManager.onError(getString(e.messageRes)) }
-                return@launch
-            } catch (e: Exception) {
-                controller.note("provision threw", e)
-                withContext(Dispatchers.Main) {
-                    VpnManager.onError(e.message ?: getString(R.string.ikev2_failed_generic))
-                }
-                return@launch
-            }
-            if (consent != null) {
-                withContext(Dispatchers.Main) {
-                    pendingIkev2Remark = remark
-                    ikev2ConsentLauncher.launch(consent)
-                }
-            } else {
-                controller.startProvisioned(this@MainActivity, remark)
-            }
-        }
-    }
 
     private fun maybeRequestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

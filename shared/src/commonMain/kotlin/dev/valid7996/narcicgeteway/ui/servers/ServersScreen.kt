@@ -1726,16 +1726,7 @@ fun ServersScreen(
         )
     }
 
-    if (showIkev2) {
-        Ikev2Sheet(
-            onDismiss = { showIkev2 = false },
-            onSave = { name, settings ->
-                showIkev2 = false
-                repository.addIkev2(settings, name)
-                onServerActivated()
-            },
-        )
-    }
+
 
     if (showSstp) {
         SstpSheet(
@@ -2270,7 +2261,7 @@ internal fun AddServerSheet(
     onMasterDns: () -> Unit,
     onMhrv: () -> Unit,
     onOpenConnect: () -> Unit,
-    onIkev2: () -> Unit,
+    onIkev2: () -> Unit = {},
     onSstp: (() -> Unit)? = null,
     onTor: () -> Unit,
     onSsh: () -> Unit,
@@ -2479,16 +2470,7 @@ internal fun AddServerSheet(
                         onClick = onAether,
                     )
                 }
-                GlassOptionCard(
-                    title = stringResource(Res.string.ikev2_add_title),
-                    subtitle = "",
-                    icon = Res.drawable.ic_lock,
-                    accentColor = Color(0xFF2088FF),
-                    iconTint = Color(0xFF38BDF8),
-                    gradientStart = Color(0xFF0C2442).copy(alpha = 0.90f),
-                    gradientEnd = Color(0xFF0A1A30).copy(alpha = 0.75f),
-                    onClick = onIkev2,
-                )
+
                 if (onSstp != null) {
                     GlassOptionCard(
                         title = "MS-SSTP",

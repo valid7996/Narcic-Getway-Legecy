@@ -63,7 +63,7 @@ private enum class LogCategory(val tags: Set<String>) {
     App(setOf(
         "NarcicGeteway", "NrgVpnService", "MainActivity", "VpnManager", "AndroidVpn",
         "PingService", "PingCoordinator", "ConfigRepository", "GeoAssets", "UpdateChecker",
-        "Ikev2Controller", "Ikev2EventReceiver", "OpenConnectController", "NrgWidgetProvider",
+        "OpenConnectController", "NrgWidgetProvider",
         "HevTunCore", "SocksShim", "SpeedTest",
     )),
     Xray(setOf("GoLog", "Go", "XrayController", "Libv2ray", "v2ray", "LibXray", "CoreProbe")),

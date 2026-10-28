@@ -147,11 +147,7 @@ class AppContainer(context: Context) {
                     val exp = active?.expiresAt
                     if (active?.isLocked == true && exp != null && System.currentTimeMillis() >= exp) {
                         android.util.Log.i("AppContainer", "Active locked profile has expired, disconnecting VPN")
-                        if (dev.valid7996.narcicgeteway.core.Ikev2Controller.isActive) {
-                            dev.valid7996.narcicgeteway.core.Ikev2Controller.stop(context)
-                        } else {
-                            dev.valid7996.narcicgeteway.core.AndroidVpn.stop(context)
-                        }
+                        dev.valid7996.narcicgeteway.core.AndroidVpn.stop(context)
                         VpnManager.onError(context.getString(dev.valid7996.narcicgeteway.R.string.zsx_expired))
                     }
                 }

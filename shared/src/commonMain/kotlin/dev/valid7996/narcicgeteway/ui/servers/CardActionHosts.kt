@@ -190,18 +190,6 @@ internal fun CardActionHosts(
                     },
                 )
             }
-            target.isIkev2 -> {
-                Ikev2Sheet(
-                    initial = target.ikev2Settings(),
-                    initialName = target.name,
-                    onDismiss = onDismissEdit,
-                    onSave = { name, settings ->
-                        repository.addIkev2(settings, name, id = target.id)
-                        toastSaved()
-                        onDismissEdit()
-                    },
-                )
-            }
             target.isSstp -> {
                 SstpSheet(
                     initial = target.sstpSettings(),

@@ -24,4 +24,4 @@ that library needs a lower version (or this build cannot go below 24).
 - The default Windscribe subscription URL in `ConfigRepository.kt` (search `windscribe.txt`)
   also points at the original repo.
 - The README badges/links, and the `.github/workflows` (only the Android ones were kept).
-- IKEv2 needs Android 11+; it is simply unavailable on older phones.
+- IKEv2 and default Windscribe IKEv2 subscription have been completely removed (IKEv2 requires Android 11+ and is unavailable on legacy devices).
