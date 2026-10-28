@@ -9,7 +9,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
 object PlayStore {
-    const val PACKAGE = "com.narcic.getway"
+    const val PACKAGE = "com.narcic.getway.legacy"
 
     const val MARKET_URL = "market://details?id=$PACKAGE"
     const val WEB_URL = "https://play.google.com/store/apps/details?id=$PACKAGE"
@@ -22,7 +22,7 @@ object PlayStore {
 enum class Distribution { PlayStore, GitHub }
 
 object GitHubReleases {
-    const val REPO = "valid7996/Narcic-Getway"
+    const val REPO = "valid7996/Narcic-Getway-Legecy"
 
     const val PROJECT_URL = "https://github.com/$REPO"
 

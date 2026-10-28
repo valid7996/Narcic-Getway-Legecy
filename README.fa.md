@@ -2,17 +2,17 @@
 
 <img src="docs/assets/icon.png" alt="Narcic Gateway Logo" width="128" height="128" />
 
-# 🛡️ نرسیس گیت‌وی (Narcic Gateway)
+# 🛡️ نرسیس گیت‌وی لگسی (Narcic Gateway Legacy)
 
 **کلاینت پیشرفته، فوق‌العاده سریع و چند‌هسته‌ای فیلترشکن و تونل امن برای اندروید**  
 *طراحی شده برای دسترسی آزاد، پایدار و ایمن به اینترنت آزاد و بدون سانسور.*
 
-[![نسخه منتشر شده](https://img.shields.io/github/v/release/valid7996/Narcic-Getway?style=for-the-badge&color=00D26A)](https://github.com/valid7996/Narcic-Getway/releases)
-[![وضعیت بیلد](https://img.shields.io/github/actions/workflow/status/valid7996/Narcic-Getway/android-release.yml?style=for-the-badge)](https://github.com/valid7996/Narcic-Getway/actions)
+[![نسخه منتشر شده](https://img.shields.io/github/v/release/valid7996/Narcic-Getway-Legecy?style=for-the-badge&color=00D26A)](https://github.com/valid7996/Narcic-Getway-Legecy/releases)
+[![وضعیت بیلد](https://img.shields.io/github/actions/workflow/status/valid7996/Narcic-Getway-Legecy/android-release.yml?style=for-the-badge)](https://github.com/valid7996/Narcic-Getway-Legecy/actions)
 [![مجوز](https://img.shields.io/badge/مجوز-GPL%203.0-blue.svg?style=for-the-badge)](LICENSE)
 [![کانال تلگرام](https://img.shields.io/badge/تلگرام-Narcic_team-2CA5E0?style=for-the-badge&logo=telegram)](https://t.me/Narcic_team)
 
-[**English Documentation (مستندات انگلیسی)**](README.md) • [**دانلود آخرین نسخه APK**](https://github.com/valid7996/Narcic-Getway/releases/latest) • [**گزارش مشکل / باگ**](https://github.com/valid7996/Narcic-Getway/issues)
+[**English Documentation (مستندات انگلیسی)**](README.md) • [**دانلود آخرین نسخه APK**](https://github.com/valid7996/Narcic-Getway-Legecy/releases/latest) • [**گزارش مشکل / باگ**](https://github.com/valid7996/Narcic-Getway-Legecy/issues)
 
 </div>
 
@@ -53,7 +53,7 @@
 
 ## 📲 راهنمای دانلود و نصب
 
-۱. به بخش **[Releases (انتشارها)](https://github.com/valid7996/Narcic-Getway/releases/latest)** مراجعه کنید.  
+۱. به بخش **[Releases (انتشارها)](https://github.com/valid7996/Narcic-Getway-Legecy/releases/latest)** مراجعه کنید.  
 ۲. فایل نصبی متناسب با سیستم‌عامل خود را دریافت نمایید:  
    - **اندروید:** فایل‌های APK (`arm64-v8a`، `armeabi-v7a`، `x86_64`، `universal` و نسخه‌های تمیز `-clean`).  
    - **ویندوز:** فایل نصبی `NarcicGetway-*-x86_64.msi` یا نسخه قابل حمل `NarcicGetway-*-windows-x86_64.zip`.  

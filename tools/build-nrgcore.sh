@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export GOTOOLCHAIN=go1.26.3
 export PATH="$HOME/go/bin:$PATH"
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
-ANDROID_API=24
+ANDROID_API=21
 PSI_DIR="$ROOT/reference/psiphon-tunnel-core/MobileLibrary/Android"
 
 pick_newest() { ls -d "$1"/*/ 2>/dev/null | sort -V | tail -1 | sed 's:/*$::'; }
@@ -73,7 +73,7 @@ unzip -o "$RAW" -d "$WORK/psi" >/dev/null
 
 cat > "$WORK/psi/AndroidManifest.xml" <<'EOF'
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="ca.psiphon">
-    <uses-sdk android:minSdkVersion="24" />
+    <uses-sdk android:minSdkVersion="21" />
 </manifest>
 EOF
 rm -rf "$WORK/psi/res/xml" 2>/dev/null || true

@@ -2,17 +2,17 @@
 
 <img src="docs/assets/icon.png" alt="Narcic Gateway Logo" width="128" height="128" />
 
-# 🛡️ Narcic Gateway (نرسیس گیت‌وی)
+# 🛡️ Narcic Gateway Legacy (نرسیس گیت‌وی لگسی)
 
 **An ultra-fast, multi-core, privacy-first VPN & Proxy client for Android**  
 *Built for uncensored, secure, and resilient internet access.*
 
-[![Release](https://img.shields.io/github/v/release/valid7996/Narcic-Getway?style=for-the-badge&color=00D26A)](https://github.com/valid7996/Narcic-Getway/releases)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/valid7996/Narcic-Getway/android-release.yml?style=for-the-badge)](https://github.com/valid7996/Narcic-Getway/actions)
+[![Release](https://img.shields.io/github/v/release/valid7996/Narcic-Getway-Legecy?style=for-the-badge&color=00D26A)](https://github.com/valid7996/Narcic-Getway-Legecy/releases)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/valid7996/Narcic-Getway-Legecy/android-release.yml?style=for-the-badge)](https://github.com/valid7996/Narcic-Getway-Legecy/actions)
 [![License](https://img.shields.io/badge/License-GPL%203.0-blue.svg?style=for-the-badge)](LICENSE)
 [![Telegram](https://img.shields.io/badge/Telegram-Narcic_team-2CA5E0?style=for-the-badge&logo=telegram)](https://t.me/Narcic_team)
 
-[**فارسی (Persian Documentation)**](README.fa.md) • [**Download APK**](https://github.com/valid7996/Narcic-Getway/releases/latest) • [**Report Issue**](https://github.com/valid7996/Narcic-Getway/issues)
+[**فارسی (Persian Documentation)**](README.fa.md) • [**Download APK**](https://github.com/valid7996/Narcic-Getway-Legecy/releases/latest) • [**Report Issue**](https://github.com/valid7996/Narcic-Getway-Legecy/issues)
 
 </div>
 
@@ -53,7 +53,7 @@
 
 ## 📲 Quick Installation
 
-1. Navigate to the **[Releases](https://github.com/valid7996/Narcic-Getway/releases/latest)** section.
+1. Navigate to the **[Releases](https://github.com/valid7996/Narcic-Getway-Legecy/releases/latest)** section.
 2. Download the latest APK corresponding to your device architecture (`arm64-v8a` recommended for almost all modern phones, or universal).
 3. Install the APK, open Narcic Gateway, and import your subscription via:
    - Deep-link (`narcicgeteway://...`)

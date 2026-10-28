@@ -64,9 +64,9 @@ jobs:
           [ -d "$SNOWFLAKE/client" ] || { echo "::error::snowflake $SNOWFLAKE_VERSION did not come through the Go module proxy"; exit 1; }
           git clone -q --depth 1 -b "$SNISPOOF_VERSION" https://github.com/aleskxyz/SNI-Spoofing-Go.git snispoof
           BIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
-          for triple in "arm64:arm64-v8a:aarch64-linux-android24-clang" \
-                        "arm:armeabi-v7a:armv7a-linux-androideabi24-clang" \
-                        "amd64:x86_64:x86_64-linux-android24-clang"; do
+          for triple in "arm64:arm64-v8a:aarch64-linux-android21-clang" \
+                        "arm:armeabi-v7a:armv7a-linux-androideabi21-clang" \
+                        "amd64:x86_64:x86_64-linux-android21-clang"; do
             arch=${triple%%:*}; rest=${triple#*:}; abi=${rest%%:*}; cc=${rest#*:}
             mkdir -p "out/$abi"
             export CGO_ENABLED=1 CC="$BIN/$cc" GOOS=android GOARCH=$arch GOARM=7

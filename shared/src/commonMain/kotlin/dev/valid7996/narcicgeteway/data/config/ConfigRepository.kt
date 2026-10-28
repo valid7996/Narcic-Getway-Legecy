@@ -1977,7 +1977,7 @@ class ConfigRepository(private val store: KeyValueStore) {
         const val DEFAULT_SUB_HAMEDVPNS_URL =
             "https://raw.githubusercontent.com/hamedp-71/N_sub_cheker/refs/heads/patch-1/final.txt"
         const val DEFAULT_SUB_WINDSCRIBE_URL =
-            "https://raw.githubusercontent.com/valid7996/Narcic-Getway/main/subscriptions/windscribe.txt"
+            "https://raw.githubusercontent.com/valid7996/Narcic-Getway-Legecy/main/subscriptions/windscribe.txt"
 
         val DEFAULT_SUB_IDS = setOf(
             DEFAULT_SUB_IRANCELL,
