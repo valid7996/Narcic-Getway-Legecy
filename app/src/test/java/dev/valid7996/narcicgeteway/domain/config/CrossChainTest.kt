@@ -70,8 +70,6 @@ class CrossChainTest {
         ProfileSource.Link("vless://11111111-1111-1111-1111-111111111111@a.example:443?encryption=none&security=tls&type=tcp#A"),
     )
     private val psiphon = profile("psiphon", ProfileSource.Psiphon(PsiphonProfile()))
-    )
-    )
 
     @Test
     fun `carriers are limited to xray, psiphon and tor`() {
