@@ -70,18 +70,14 @@ class CrossChainTest {
         ProfileSource.Link("vless://11111111-1111-1111-1111-111111111111@a.example:443?encryption=none&security=tls&type=tcp#A"),
     )
     private val psiphon = profile("psiphon", ProfileSource.Psiphon(PsiphonProfile()))
-        "dnstt",
     )
-        "vaydns",
     )
-    private val ikev2 = profile("ikev2", ProfileSource.Ikev2(Ikev2Profile(server = "s")))
 
     @Test
     fun `carriers are limited to xray, psiphon and tor`() {
         assertTrue("Xray server", link.canCarryChain)
         assertTrue("Psiphon", psiphon.canCarryChain)
 
-        assertFalse("IKEv2", ikev2.canCarryChain)
     }
 
     @Test
@@ -90,7 +86,6 @@ class CrossChainTest {
 
         assertTrue("Xray via sockopt.dialerProxy", link.canDialThroughProxy)
 
-        assertFalse("IKEv2", ikev2.canDialThroughProxy)
     }
 
     @Test

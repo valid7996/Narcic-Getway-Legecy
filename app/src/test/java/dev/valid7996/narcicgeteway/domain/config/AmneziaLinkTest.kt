@@ -215,20 +215,6 @@ class AmneziaLinkTest {
         assertEquals("Multi · Xray", found[1].name)
     }
 
-    @Test
-    fun `an IPsec container becomes an IKEv2 profile`() {
-        val inner = """{"hostName":"ike.example.com","userName":"alice","password":"hunter2"}"""
-        val json = """{"containers":[{"container":"amnezia-ipsec","ikev2":{"last_config":${quote(inner)}}}],
-            "defaultContainer":"amnezia-ipsec","description":"IKE","hostName":"ike.example.com"}"""
-
-        val link = items(server(json)).single().text
-        val source = NrgLink.parse(link)?.source
-        assertTrue("expected an IKEv2 source, got $source", source is ProfileSource.Ikev2)
-        val settings = (source as ProfileSource.Ikev2).settings
-        assertEquals("ike.example.com", settings.server)
-        assertEquals("alice", settings.username)
-        assertEquals("hunter2", settings.plainPassword())
-    }
 
     @Test
     fun `a backup is named as one instead of failing as an unsupported config`() {

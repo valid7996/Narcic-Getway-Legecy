@@ -108,7 +108,7 @@ class DeepLinkParserTest {
             DeepLinkRequest.Subscription("https://sub.example/z", "Mine"),
             DeepLinkParser.parse("narcicgetway://import?url=${enc("https://sub.example/z")}&name=Mine"),
         )
-        val shared = NrgLink.build("Tor here", ProfileSource.Tor)!!
+        val shared = NrgLink.build("Psiphon here", ProfileSource.Psiphon(PsiphonProfile()))!!
         assertEquals(DeepLinkRequest.ConfigText(shared), DeepLinkParser.parse(shared))
     }
 

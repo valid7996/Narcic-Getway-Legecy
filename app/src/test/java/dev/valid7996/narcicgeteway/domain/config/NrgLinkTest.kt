@@ -19,15 +19,6 @@ class NrgLinkTest {
     }
 
     @Test
-    @Test
-    fun `ikev2 survives`() {
-        roundTrip("Home", ProfileSource.Ikev2(Ikev2Profile(server = "vpn.example.com", username = "u", mtu = 1400)))
-    }
-
-    @Test
-    @Test
-    @Test
-    @Test
     fun `a chain carries its members inside the link`() {
         val members = listOf(
             "vless://11111111-2222-3333-4444-555555555555@a.example.com:443?type=ws#A",
@@ -43,7 +34,6 @@ class NrgLinkTest {
     @Test
     fun `handles claims exactly the sources with no community format`() {
         listOf(
-            ProfileSource.Ikev2(Ikev2Profile()),
             ProfileSource.ProxyChain(emptyList()),
         ).forEach { assertTrue("$it should be handled", NrgLink.handles(it)) }
 
@@ -64,7 +54,6 @@ class NrgLinkTest {
     }
 
     @Test
-    @Test
     fun `a sealed profile exposes nothing`() {
         val p = VpnProfile(
             id = "i", name = "Locked", protocol = "VLESS", address = "a", port = 1,
@@ -80,7 +69,6 @@ class NrgLinkTest {
             transportLabel = "", source = src, addedAt = 0L,
         )
         listOf(
-            ProfileSource.Ikev2(Ikev2Profile(server = "s")),
             ProfileSource.Psiphon(PsiphonProfile()),
         ).forEach {
             assertNotNull("$it had no share payload", profile(it).rawPayload())
