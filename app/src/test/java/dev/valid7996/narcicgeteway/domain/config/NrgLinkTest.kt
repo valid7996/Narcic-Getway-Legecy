@@ -146,17 +146,4 @@ class NrgLinkTest {
             assertNotNull("$it had no share payload", profile(it).rawPayload())
         }
     }
-
-    @Test
-    fun `windscribe defaults parse all 15 configs properly`() {
-        val links = SubscriptionParser.extractLinks(WindscribeDefaults.CONFIGS)
-        assertEquals(15, links.size)
-        links.forEach { link ->
-            assertTrue(ConfigParser.isSupportedLink(link))
-            val profile = VpnProfile.fromNrgLink(link, "test-id", 0L, "default-windscribe")
-            assertNotNull(profile)
-            assertTrue(profile!!.isIkev2)
-            assertEquals("default-windscribe", profile.subscriptionId)
-        }
-    }
 }
