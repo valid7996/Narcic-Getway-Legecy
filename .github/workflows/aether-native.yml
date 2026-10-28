@@ -1,0 +1,172 @@
+name: aether-native
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  aether-android:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - abi: arm64-v8a
+            triple: aarch64-linux-android
+            clang: aarch64-linux-android29
+          - abi: armeabi-v7a
+            triple: armv7-linux-androideabi
+            clang: armv7a-linux-androideabi29
+          - abi: x86_64
+            triple: x86_64-linux-android
+            clang: x86_64-linux-android29
+    env:
+      AETHER_REPO: https://github.com/patterniha/Aether.git
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use the runner's NDK
+        run: |
+          echo "NDK_HOME=$ANDROID_HOME/ndk/$(ls -1 "$ANDROID_HOME/ndk" | sort -V | tail -1)" >> "$GITHUB_ENV"
+
+      - name: Install the Rust toolchain and the Android targets
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+
+      - name: Clone the Aether core at its head
+        run: |
+          git clone --depth 1 "$AETHER_REPO" aether-core
+          echo "AETHER_REV=$(git -C aether-core rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Build the core for ${{ matrix.abi }}
+        working-directory: aether-core/aether
+        env:
+          TRIPLE: ${{ matrix.triple }}
+          CLANG_TARGET: ${{ matrix.clang }}
+        run: |
+          TOOLCHAIN="$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          SYSROOT="$(cd "$TOOLCHAIN/../sysroot" && pwd)"
+          env_triple="$(echo "$TRIPLE" | tr 'a-z-' 'A-Z_')"
+          under_triple="$(echo "$TRIPLE" | tr '-' '_')"
+          # A pinned target dir: the crate sits in a workspace, so cargo would
+          # otherwise put the artifacts at the workspace root.
+          export CARGO_TARGET_DIR="$PWD/target"
+          env \
+            ANDROID_NDK_HOME="$NDK_HOME" \
+            ANDROID_NDK_ROOT="$NDK_HOME" \
+            "CARGO_TARGET_${env_triple}_LINKER=$TOOLCHAIN/$CLANG_TARGET-clang" \
+            "CARGO_TARGET_${env_triple}_RUSTFLAGS=-C link-arg=-Wl,-z,max-page-size=16384 -C link-arg=-Wl,-z,common-page-size=16384" \
+            "CC_${under_triple}=$TOOLCHAIN/clang" \
+            "CXX_${under_triple}=$TOOLCHAIN/clang++" \
+            "CFLAGS_${under_triple}=--target=$CLANG_TARGET" \
+            "CXXFLAGS_${under_triple}=--target=$CLANG_TARGET" \
+            "AR_${under_triple}=$TOOLCHAIN/llvm-ar" \
+            "BINDGEN_EXTRA_CLANG_ARGS_${under_triple}=--target=$CLANG_TARGET --sysroot=$SYSROOT" \
+            "BORING_BSSL_RUST_CPPLIB_${under_triple}=static:-bundle=c++" \
+            cargo build --release --locked --features tor --target "$TRIPLE" --bin aether
+
+          echo "PWD=$PWD"
+          echo "CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-unset}"
+          find target -maxdepth 4 -name aether -type f 2>/dev/null || true
+          find "$GITHUB_WORKSPACE/aether-core" -type f -name aether -path "*release*" 2>/dev/null | head -5 || true
+          produced="$(find "$GITHUB_WORKSPACE/aether-core" -type f -name aether -path "*release*" 2>/dev/null | head -1)"
+          test -n "$produced"
+          echo "using binary: $produced"
+          needed="$($TOOLCHAIN/llvm-readelf --dynamic-table "$produced" | sed -n 's/.*(NEEDED).*\[\(.*\)\]/\1/p')"
+          echo "the core for ${{ matrix.abi }} needs:" $needed
+          if grep -qx 'libc++_shared.so' <<< "$needed"; then
+            echo "the core needs libc++_shared.so, which Android does not ship"
+            exit 1
+          fi
+          mkdir -p "$GITHUB_WORKSPACE/out/${{ matrix.abi }}"
+          cp "$produced" "$GITHUB_WORKSPACE/out/${{ matrix.abi }}/libaether.so"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libaether-${{ matrix.abi }}
+          path: out/${{ matrix.abi }}/libaether.so
+
+  helpers:
+    # The carriers' helpers, ported from PattNG's compile-psiphon.sh and compile-pt.sh: Psiphon's
+    # console client and the lyrebird pluggable transport, both Go programs built for Android.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - abi: arm64-v8a
+            goarch: arm64
+            goarm: ""
+          - abi: armeabi-v7a
+            goarch: arm
+            goarm: "7"
+          - abi: x86_64
+            goarch: amd64
+            goarm: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.x"
+
+      - name: Build the Psiphon client and lyrebird for ${{ matrix.abi }}
+        run: |
+          # An absolute out: the build scripts cd into their source tree, where a
+          # relative path would land the binary inside the tree they delete after.
+          OUT="$GITHUB_WORKSPACE/out/${{ matrix.abi }}"
+          mkdir -p "$OUT"
+          curl -fsSL "https://raw.githubusercontent.com/patterniha/Aether/main/psiphon-build.sh" -o psiphon-build.sh
+          curl -fsSL "https://raw.githubusercontent.com/patterniha/Aether/main/pt-build.sh" -o pt-build.sh
+          bash psiphon-build.sh linux ${{ matrix.goarch }} "$OUT" ${{ matrix.goarm }}
+          bash pt-build.sh linux ${{ matrix.goarch }} "$OUT" ${{ matrix.goarm }}
+          mv "$OUT/psiphon-tunnel-core" "$OUT/libpsiphon-tunnel-core.so"
+          mv "$OUT/lyrebird" "$OUT/liblyrebird.so"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aether-helpers-${{ matrix.abi }}
+          path: out/${{ matrix.abi }}/
+
+  commit:
+    needs: [aether-android, helpers]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: libaether-*
+          path: out
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: aether-helpers-*
+          path: helpers
+
+      - name: Place the cores into jniLibs and push
+        run: |
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            mkdir -p "app/src/main/jniLibs/$abi"
+            cp "out/libaether-$abi/libaether.so" "app/src/main/jniLibs/$abi/libaether.so"
+            cp "helpers/aether-helpers-$abi/libpsiphon-tunnel-core.so" "app/src/main/jniLibs/$abi/libpsiphon-tunnel-core.so"
+            cp "helpers/aether-helpers-$abi/liblyrebird.so" "app/src/main/jniLibs/$abi/liblyrebird.so"
+          done
+          n=$(sha256sum app/src/main/jniLibs/*/libaether.so | awk '{print $1}' | sort -u | wc -l)
+          if [ "$n" != "3" ]; then
+            echo "::error::the three ABIs produced $n distinct binaries, expected 3"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/main/jniLibs/*/libaether.so app/src/main/jniLibs/*/libpsiphon-tunnel-core.so app/src/main/jniLibs/*/liblyrebird.so
+          if git diff --cached --quiet; then
+            echo "nothing to commit"
+          else
+            git commit -m "Aether core and carrier helpers (patterniha/Aether @ $AETHER_REV)"
+            git push
+          fi

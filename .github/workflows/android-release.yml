@@ -1,0 +1,249 @@
+name: android-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      signing_key:
+        description: "play = the key Google Play already knows; upload = the CA key"
+        type: choice
+        default: play
+        options: [play, upload]
+  workflow_call:
+    inputs:
+      signing_key:
+        type: string
+        default: play
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  natives:
+    uses: ./.github/workflows/android-natives.yml
+
+  core:
+    name: nrgcore.aar
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Make room
+        run: |
+          df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/node_modules /opt/ghc \
+                      /usr/local/share/boost /usr/share/swift /usr/local/share/powershell \
+                      "$AGENT_TOOLSDIRECTORY/CodeQL" "$AGENT_TOOLSDIRECTORY/PyPy" \
+                      "$AGENT_TOOLSDIRECTORY/Ruby" /usr/local/.ghcup || true
+          sudo docker image prune --all --force >/dev/null 2>&1 || true
+          df -h / | tail -1
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "21" }
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.26.3" }
+      - name: Install an NDK that can link cronet
+        run: |
+          set -e
+          echo "before: $(ls -1 "$ANDROID_HOME/ndk" | tr '\n' ' ')"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;28.2.13676358"
+          echo "after:  $(ls -1 "$ANDROID_HOME/ndk" | tr '\n' ' ')"
+          newest=$(ls -1 "$ANDROID_HOME/ndk" | sort -V | tail -1)
+          case "$newest" in
+            2[0-7].*) echo "::error::still on NDK $newest; its linker cannot read the cronet archive"; exit 1 ;;
+          esac
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$newest" >> "$GITHUB_ENV"
+          for old in $(ls -1 "$ANDROID_HOME/ndk" | grep -v "^$newest$"); do
+            sudo rm -rf "$ANDROID_HOME/ndk/$old"
+          done
+          echo "will build with NDK $newest"
+          df -h / | tail -1
+
+      - name: Clone every engine at its pinned revision
+        env:
+          GIT_TOKEN: ${{ secrets.CORE_TOKEN || github.token }}
+        run: |
+          grep -v '^reference/openconnect' tools/core-sources.txt > /tmp/core.txt
+          cp /tmp/core.txt tools/core-sources.txt
+          bash tools/fetch-cores.sh
+
+      - name: gomobile
+        run: |
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/gobind@latest
+          echo "$HOME/go/bin" >> "$GITHUB_PATH"
+
+      - name: Build the combined core
+        env:
+          NRGCORE_TMPDIR: ${{ runner.temp }}/nrgcore
+        run: |
+          mkdir -p "$NRGCORE_TMPDIR"
+          bash tools/build-nrgcore.sh
+          ls -l app/libs/nrgcore.aar
+
+      - uses: actions/upload-artifact@v4
+        with: { name: nrgcore, path: app/libs/nrgcore.aar, retention-days: 5 }
+
+  apk:
+    needs: [core, natives]
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "21" }
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Read the version
+        id: v
+        run: echo "name=$(grep '^narcicgeteway.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v4
+        with: { name: nrgcore, path: artifacts/nrgcore }
+      - uses: actions/download-artifact@v4
+        with: { pattern: "native-*", path: artifacts }
+
+      - name: Put every engine where the build expects it
+        run: |
+          set -e
+          mkdir -p app/libs app/src/main/jniLibs
+          cp artifacts/nrgcore/nrgcore.aar app/libs/
+          for a in artifacts/native-*/; do cp -r "$a"* app/src/main/jniLibs/ 2>/dev/null || true; done
+          echo "engines in place:"; find app/src/main/jniLibs -name '*.so' | sort
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            for lib in libtor libobfs4proxy libsnowflake libconjure libsnispoof libhev-socks5-tunnel libopenconnect libzeptun-jni; do
+              [ -f "app/src/main/jniLibs/$abi/$lib.so" ] || echo "::warning::$abi/$lib.so is missing; that protocol will not work"
+            done
+            for lib in libhev-socks5-tunnel libopenconnect libzeptun-jni; do
+              so="app/src/main/jniLibs/$abi/$lib.so"
+              [ -f "$so" ] || continue
+              readelf --dyn-syms -W "$so" | grep -qE ' (JNI_OnLoad|Java_)' || { echo "::error::$abi/$lib.so has no JNI entry points; the app would crash loading it"; exit 1; }
+            done
+          done
+
+      - name: Unlock signing
+        env:
+          USE_PLAY: ${{ inputs.signing_key != 'upload' }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          PLAY_KEYSTORE_BASE64: ${{ secrets.PLAY_KEYSTORE_BASE64 }}
+          PLAY_KEYSTORE_PASSWORD: ${{ secrets.PLAY_KEYSTORE_PASSWORD }}
+          PLAY_KEY_ALIAS: ${{ secrets.PLAY_KEY_ALIAS }}
+          PLAY_KEY_PASSWORD: ${{ secrets.PLAY_KEY_PASSWORD }}
+        run: |
+          umask 077
+          if [ "$USE_PLAY" = "true" ]; then
+            B64="$PLAY_KEYSTORE_BASE64"
+          else
+            B64="$KEYSTORE_BASE64"
+          fi
+          if [ -z "$B64" ]; then
+            echo "No signing secrets set; signing with the debug keystore committed in the repo"
+            exit 0
+          fi
+          if [ "$USE_PLAY" = "true" ]; then
+            printf '%s' "$B64" | base64 -d > release.keystore
+            STORE_PW="$PLAY_KEYSTORE_PASSWORD"; KEY_PW="$PLAY_KEY_PASSWORD"; ALIAS="$PLAY_KEY_ALIAS"
+          else
+            printf '%s' "$B64" | base64 -d > release.keystore
+            STORE_PW="$KEYSTORE_PASSWORD"; KEY_PW="$KEY_PASSWORD"; ALIAS="$KEY_ALIAS"
+          fi
+          { echo "storeFile=release.keystore"; echo "storePassword=$STORE_PW"
+            echo "keyPassword=$KEY_PW"; echo "keyAlias=$ALIAS"; } > keystore.properties
+
+      - name: Test and build
+        run: bash gradlew --no-daemon :app:testDebugUnitTest :app:assembleRelease
+
+      - name: Name them for people
+        run: |
+          set -e
+          mkdir -p dist
+          V='${{ steps.v.outputs.name }}'
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            src="app/build/outputs/apk/release/app-$abi-release.apk"
+            [ -f "$src" ] || { echo "::error::$src was not built"; exit 1; }
+            cp "$src" "dist/NarcicGetway-$V-$abi.apk"
+          done
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          python3 tools/universal-apk.py "dist/NarcicGetway-$V-arm64-v8a.apk" /tmp/universal.apk "dist/NarcicGetway-$V-armeabi-v7a.apk"
+          "$BT/zipalign" -f -P 16 4 /tmp/universal.apk /tmp/universal-aligned.apk
+          if [ -f release.keystore ]; then
+            STORE_PW=$(grep '^storePassword=' keystore.properties | cut -d= -f2-) \
+            KEY_PW=$(grep '^keyPassword=' keystore.properties | cut -d= -f2-) \
+            "$BT/apksigner" sign --ks release.keystore \
+              --ks-key-alias "$(grep '^keyAlias=' keystore.properties | cut -d= -f2-)" \
+              --ks-pass env:STORE_PW --key-pass env:KEY_PW \
+              --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false \
+              --out "dist/NarcicGetway-$V-universal.apk" /tmp/universal-aligned.apk
+          else
+            # No signing secrets: sign with the debug keystore committed in the repo
+            KS_FILE="$(grep '^storeFile=' keystore.properties | cut -d= -f2-)"
+            STORE_PW=$(grep '^storePassword=' keystore.properties | cut -d= -f2-) \
+            KEY_PW=$(grep '^keyPassword=' keystore.properties | cut -d= -f2-) \
+            "$BT/apksigner" sign --ks "$KS_FILE" --ks-type PKCS12 \
+              --ks-key-alias "$(grep '^keyAlias=' keystore.properties | cut -d= -f2-)" \
+              --ks-pass env:STORE_PW --key-pass env:KEY_PW \
+              --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false \
+              --out "dist/NarcicGetway-$V-universal.apk" /tmp/universal-aligned.apk
+          fi
+          rm -f /tmp/universal.apk /tmp/universal-aligned.apk
+
+          echo "Building clean version without default subscriptions..."
+          bash gradlew --no-daemon :app:assembleRelease -Pnarcicgeteway.includeDefaultSubs=false
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            src="app/build/outputs/apk/release/app-$abi-release.apk"
+            [ -f "$src" ] || { echo "::error::$src was not built"; exit 1; }
+            cp "$src" "dist/NarcicGetway-$V-$abi-clean.apk"
+          done
+          python3 tools/universal-apk.py "app/build/outputs/apk/release/app-arm64-v8a-release.apk" /tmp/universal-clean.apk "app/build/outputs/apk/release/app-armeabi-v7a-release.apk"
+          "$BT/zipalign" -f -P 16 4 /tmp/universal-clean.apk /tmp/universal-clean-aligned.apk
+          if [ -f release.keystore ]; then
+            STORE_PW=$(grep '^storePassword=' keystore.properties | cut -d= -f2-) \
+            KEY_PW=$(grep '^keyPassword=' keystore.properties | cut -d= -f2-) \
+            "$BT/apksigner" sign --ks release.keystore \
+              --ks-key-alias "$(grep '^keyAlias=' keystore.properties | cut -d= -f2-)" \
+              --ks-pass env:STORE_PW --key-pass env:KEY_PW \
+              --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false \
+              --out "dist/NarcicGetway-$V-universal-clean.apk" /tmp/universal-clean-aligned.apk
+          else
+            KS_FILE="$(grep '^storeFile=' keystore.properties | cut -d= -f2-)"
+            STORE_PW=$(grep '^storePassword=' keystore.properties | cut -d= -f2-) \
+            KEY_PW=$(grep '^keyPassword=' keystore.properties | cut -d= -f2-) \
+            "$BT/apksigner" sign --ks "$KS_FILE" --ks-type PKCS12 \
+              --ks-key-alias "$(grep '^keyAlias=' keystore.properties | cut -d= -f2-)" \
+              --ks-pass env:STORE_PW --key-pass env:KEY_PW \
+              --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false \
+              --out "dist/NarcicGetway-$V-universal-clean.apk" /tmp/universal-clean-aligned.apk
+          fi
+          rm -f /tmp/universal-clean.apk /tmp/universal-clean-aligned.apk
+
+          for apk in dist/NarcicGetway-*.apk; do
+            "$BT/apksigner" verify "$apk"
+            a=$("$BT/apksigner" verify --print-certs "$apk" | grep -m1 'SHA-256' | awk '{print $NF}')
+            b=$("$BT/apksigner" verify --print-certs "dist/NarcicGetway-$V-arm64-v8a.apk" | grep -m1 'SHA-256' | awk '{print $NF}')
+            [ "$a" = "$b" ] || { echo "::error::$apk is signed with a different key"; exit 1; }
+          done
+          "$BT/aapt2" dump badging "dist/NarcicGetway-$V-universal.apk" | grep -q "native-code: 'arm64-v8a' 'armeabi-v7a'" \
+            || { echo "::error::the universal APK does not carry both ARM ABIs"; exit 1; }
+          "$BT/aapt2" dump badging "dist/NarcicGetway-$V-universal-clean.apk" | grep -q "native-code: 'arm64-v8a' 'armeabi-v7a'" \
+            || { echo "::error::the universal clean APK does not carry both ARM ABIs"; exit 1; }
+          ( cd dist && sha256sum NarcicGetway-*.apk > SHA256SUMS-android.txt )
+          "$JAVA_HOME/bin/keytool" -printcert -jarfile "dist/NarcicGetway-$V-arm64-v8a.apk" | grep -E 'Owner|SHA-256' | head -2
+          ls -l dist
+
+      - name: Forget the key
+        if: always()
+        run: |
+          if [ -f release.keystore ]; then
+            shred -u release.keystore keystore.properties 2>/dev/null || rm -f release.keystore keystore.properties
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with: { name: android-apks, path: dist/*, retention-days: 30 }
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: test-results, path: app/build/reports/tests/, retention-days: 7 }

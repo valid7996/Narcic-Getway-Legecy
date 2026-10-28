@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+      Explicitly trust user-installed CAs for outbound requests.
+      Allows local MITM proxying (e.g. MasterHttpRelayVPN / Apps Script relay).
+    -->
+    <!--
+      Plain http:// subscription links (very common: a raw IP with a port) were blocked here, so the
+      download failed and an empty subscription was saved. Cleartext has to be allowed for them to import.
+    -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>
