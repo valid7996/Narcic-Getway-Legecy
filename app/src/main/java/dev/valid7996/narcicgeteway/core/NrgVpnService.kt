@@ -241,7 +241,7 @@ class NrgVpnService : VpnService() {
         hevIpv4 = iface.ipv4Client
         hevIpv6 = if (settings.enableIpv6) iface.ipv6Client else null
         useHevTun = settings.useHevTun
-        useZepTun = settings.useZepTun
+        useZepTun = settings.useZepTun && ZepTunCore.isAvailable
         hevLogLevel = settings.hevTunLogLevel.value
         hevRwTimeout = settings.hevTunRwTimeout
 

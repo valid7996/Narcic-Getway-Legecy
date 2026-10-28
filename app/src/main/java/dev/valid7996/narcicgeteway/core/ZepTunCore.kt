@@ -8,13 +8,16 @@ import dev.zeptun.Zeptun
 object ZepTunCore {
     private const val TAG = "ZepTunCore"
 
+    val isAvailable: Boolean
+        get() = Zeptun.isSupported && Zeptun.load()
+
     @Volatile
     private var running = false
 
     private const val STOP_JOIN_MS = 1_500L
 
     val version: String
-        get() = runCatching { Zeptun.nativeVersion() }.getOrDefault("")
+        get() = if (isAvailable) runCatching { Zeptun.nativeVersion() }.getOrDefault("") else "" 
 
     fun start(
         service: VpnService,
@@ -33,6 +36,7 @@ object ZepTunCore {
 
         rwTimeout: String = DEFAULT_RW_TIMEOUT,
     ): Boolean {
+        if (!isAvailable) return false
         if (running) return false
         return try {
             val (tcpSeconds, udpSeconds) = parseRwTimeout(rwTimeout)
@@ -84,13 +88,13 @@ object ZepTunCore {
             "tcp=${counter(STAT_TCP_OPENED)} failed=${counter(STAT_TCP_CONNECT_FAILED)}"
 
     private fun counter(index: Int): Long =
-        runCatching { Zeptun.nativeCounter(index) }.getOrDefault(-1L)
+        if (isAvailable) runCatching { Zeptun.nativeCounter(index) }.getOrDefault(-1L) else -1L
 
     fun stop() {
         if (!running) return
         running = false
 
-        val worker = Thread({ runCatching { Zeptun.nativeStop() } }, "zeptun-stop")
+        val worker = Thread({ if (isAvailable) runCatching { Zeptun.nativeStop() } }, "zeptun-stop")
         worker.start()
         runCatching { worker.join(STOP_JOIN_MS) }
     }
