@@ -48,12 +48,17 @@ class AetherController(
         }
         stopped = false
         val t = Thread({
-            if (profile.protocol == AetherProfile.PROTO_WG_OVER_MASQUE && !AetherSupport.capabilities(context).wgOverMasque) {
-                val caps = AetherSupport.capabilities(context)
-                LogBus.append("E/aether WireGuard over MASQUE needs aether 2.3 or newer; this build ships ${caps.version.ifEmpty { "an older core" }}. Replace libaether.so with the one of a current PattNG build.")
-                onStopped("The Aether core is too old for WireGuard over MASQUE")
-            } else {
-                runSession(binary)
+            try {
+                if (profile.protocol == AetherProfile.PROTO_WG_OVER_MASQUE && !AetherSupport.capabilities(context).wgOverMasque) {
+                    val caps = AetherSupport.capabilities(context)
+                    LogBus.append("E/aether WireGuard over MASQUE needs aether 2.3 or newer; this build ships ${caps.version.ifEmpty { "an older core" }}. Replace libaether.so with the one of a current PattNG build.")
+                    onStopped("The Aether core is too old for WireGuard over MASQUE")
+                } else {
+                    runSession(binary)
+                }
+            } catch (t: Throwable) {
+                Log.e("AetherController", "aether worker failed", t)
+                onStopped(t.message ?: "Aether failed to start")
             }
         }, "aether-worker").apply { isDaemon = true }
         worker = t
@@ -443,9 +448,11 @@ object AetherSupport {
     fun reapStale(context: Context, bindAddress: String?) {
         val binaryPath = binary(context).absolutePath
         val procDir = File("/proc")
-        val entries = procDir.listFiles() ?: return
+        val entries = runCatching { procDir.listFiles() }.getOrNull() ?: return
+        val myPid = android.os.Process.myPid()
         for (entry in entries) {
             val pid = entry.name.toIntOrNull() ?: continue
+            if (pid == myPid) continue
             val argv = readNulSeparated(File(entry, "cmdline")) ?: continue
             if (argv.firstOrNull() != binaryPath) continue
             val environ = readNulSeparated(File(entry, "environ"))

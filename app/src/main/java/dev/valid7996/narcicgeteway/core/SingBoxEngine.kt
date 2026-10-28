@@ -283,9 +283,11 @@ class SingBoxEngine(
             }
         }
 
-        cm.registerDefaultNetworkCallback(callback)
-        networkCallback = callback
-        cm.activeNetwork?.let { report(cm, it, listener) }
+        runCatching {
+            cm.registerDefaultNetworkCallback(callback)
+            networkCallback = callback
+        }.onFailure { Log.w(TAG, "registerDefaultNetworkCallback failed", it) }
+        runCatching { cm.activeNetwork?.let { report(cm, it, listener) } }
     }
 
     private fun report(cm: ConnectivityManager, network: Network, listener: InterfaceUpdateListener) {

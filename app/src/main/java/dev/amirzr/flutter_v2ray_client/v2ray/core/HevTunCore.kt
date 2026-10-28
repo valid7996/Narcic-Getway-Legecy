@@ -44,7 +44,7 @@ object HevTunCore {
             TProxyService.TProxyStartService(file.absolutePath, tun.fd)
             running = true
             true
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "start failed", e)
             false
         }

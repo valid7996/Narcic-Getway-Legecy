@@ -10,6 +10,7 @@ object Zeptun {
     external fun nativeCounter(index: Int): Long
 
     init {
+        runCatching { System.loadLibrary("zeptun") }
         System.loadLibrary("zeptun-jni")
     }
 }
