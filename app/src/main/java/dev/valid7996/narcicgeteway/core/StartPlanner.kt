@@ -5,7 +5,6 @@ import dev.valid7996.narcicgeteway.R
 import dev.valid7996.narcicgeteway.NrgSecureApp
 import dev.valid7996.narcicgeteway.data.assets.GeoAssetsRepository
 import dev.valid7996.narcicgeteway.domain.config.ConfigParser
-import dev.valid7996.narcicgeteway.domain.config.Ikev2Profile
 import dev.valid7996.narcicgeteway.domain.config.LocalPorts
 import dev.valid7996.narcicgeteway.domain.config.LocalProxy
 import dev.valid7996.narcicgeteway.domain.config.ProfileSource
@@ -55,7 +54,6 @@ class StartPlanner(context: Context) {
             return Plan.Failure(appContext.getString(R.string.zsx_expired))
         }
         val effective = profile.resolveUnsealed() ?: profile
-        effective.ikev2Settings()?.let { return Plan.Failure(appContext.getString(R.string.ikev2_requires_android11)) }
         val kind = engineKindOf(effective)
         val configJson = try {
             if (kind == VpnManager.KIND_CROSS_CHAIN) buildCrossChainWrapper(effective)
@@ -176,11 +174,6 @@ class StartPlanner(context: Context) {
                 put("aether", org.json.JSONObject(profileJson))
                 put("front", dev.valid7996.narcicgeteway.domain.config.AetherFront.config(aether, options))
             }.toString()
-        }
-        profile.ikev2Settings()?.let {
-            return kotlinx.serialization.json.Json.encodeToString(
-                dev.valid7996.narcicgeteway.domain.config.Ikev2Profile.serializer(), it,
-            )
         }
         val geoReady = GeoAssetsRepository(appContext).allPresent()
         val settings = settingsRepository.settings.value

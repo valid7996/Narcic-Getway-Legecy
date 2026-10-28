@@ -36,8 +36,6 @@ class NrgSecureApp : Application(), SingletonImageLoader.Factory {
         XrayController.warmUp(this)
         PingService.rstaSpoofLease = { RstaSpoofClient.lease(this, SettingsRepository(this).settings.value) }
         PingService.aetherTunnel = { profile, measure -> AetherDelayProbe.run(this, profile, measure) }
-            }
-        }
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader =
