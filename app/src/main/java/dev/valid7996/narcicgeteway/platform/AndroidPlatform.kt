@@ -194,6 +194,23 @@ class AndroidPlatform(
         }
     }
 
+    override val supportsAdbLog: Boolean get() = true
+
+    override fun getAdbLog(): String = dev.valid7996.narcicgeteway.core.AdbLogcat.buildDiagnosticReport(context)
+
+    override fun getLastCrashReport(): String? = dev.valid7996.narcicgeteway.core.AppCrashHandler.getLastCrashReport(context)
+
+    override fun clearAdbLog() {
+        dev.valid7996.narcicgeteway.core.AdbLogcat.clear(context)
+    }
+
+    override fun shareAdbLog() {
+        val report = getAdbLog()
+        val time = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date())
+        val fileName = "narcic-legacy-adb-log-" + time + ".txt"
+        ZsxSharing.shareText(context, fileName, report)
+    }
+
     override fun toast(message: String) {
         mainHandler.post { Toast.makeText(context, message, Toast.LENGTH_SHORT).show() }
     }

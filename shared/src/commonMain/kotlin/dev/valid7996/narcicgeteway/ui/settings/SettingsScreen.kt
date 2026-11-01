@@ -217,6 +217,7 @@ private fun RootPage(
     var checkTrigger by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
     var checking by androidx.compose.runtime.remember { mutableStateOf(false) }
     var showLogs by androidx.compose.runtime.remember { mutableStateOf(false) }
+    var showAdbLogs by androidx.compose.runtime.remember { mutableStateOf(false) }
     var showRstaSpoof by androidx.compose.runtime.remember { mutableStateOf(false) }
 
     SettingsPageScaffold(
@@ -303,6 +304,15 @@ private fun RootPage(
                 leadingIcon = Res.drawable.ic_description,
                 iconTint = Color(0xFF8E8E93),
             ) { showLogs = true }
+            if (platform.supportsAdbLog) {
+                SettingsDivider()
+                SettingsMenuRow(
+                    stringResource(Res.string.adb_logs_title),
+                    stringResource(Res.string.adb_logs_sub),
+                    leadingIcon = Res.drawable.ic_terminal,
+                    iconTint = Color(0xFF34C759),
+                ) { showAdbLogs = true }
+            }
             SettingsDivider()
             SettingsMenuRow(
                 stringResource(Res.string.rsta_title),
@@ -469,6 +479,7 @@ private fun RootPage(
         )
 
         if (showLogs) LogSheet(onDismiss = { showLogs = false })
+        if (showAdbLogs) AdbLogSheet(onDismiss = { showAdbLogs = false })
         if (showRstaSpoof) RstaSpoofSheet(settings = settings, onUpdate = { updated -> onUpdate { updated } }, onDismiss = { showRstaSpoof = false })
     }
 }

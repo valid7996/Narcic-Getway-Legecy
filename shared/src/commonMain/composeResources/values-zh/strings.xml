@@ -997,6 +997,15 @@
     <string name="logs_copy">复制日志</string>
     <string name="logs_share">分享日志</string>
     <string name="logs_clear">清除日志</string>
+    <string name="adb_logs_title">ADB 日志与崩溃报告</string>
+    <string name="adb_logs_sub">用于排查故障的系统 logcat 和崩溃日志</string>
+    <string name="adb_logs_crash_detected">检测到崩溃</string>
+    <string name="adb_logs_copy_crash">复制崩溃日志</string>
+    <string name="adb_logs_share">分享 ADB 日志</string>
+    <string name="adb_logs_copied">已复制 ADB 日志</string>
+    <string name="adb_logs_cleared">已清空 ADB 日志</string>
+    <string name="adb_logs_refresh">刷新</string>
+    <string name="adb_logs_empty">暂无日志。</string>
     <string name="openconnect_edit_title">编辑 OpenConnect</string>
     <string name="openconnect_scope_note">路由规则、地理封锁、策略组、代理链和局域网绕过对 OpenConnect 无效 — 路由由网关决定。</string>
     <string name="openconnect_sni">TLS SNI（可选）</string>

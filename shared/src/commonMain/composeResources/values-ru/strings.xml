@@ -997,6 +997,15 @@
     <string name="logs_copy">Копировать логи</string>
     <string name="logs_share">Поделиться логами</string>
     <string name="logs_clear">Очистить логи</string>
+    <string name="adb_logs_title">Лог ADB и отчеты о сбоях</string>
+    <string name="adb_logs_sub">Системный logcat и сбои для устранения неполадок</string>
+    <string name="adb_logs_crash_detected">Обнаружен сбой</string>
+    <string name="adb_logs_copy_crash">Скопировать сбой</string>
+    <string name="adb_logs_share">Поделиться логом ADB</string>
+    <string name="adb_logs_copied">Лог ADB скопирован</string>
+    <string name="adb_logs_cleared">Лог ADB очищен</string>
+    <string name="adb_logs_refresh">Обновить</string>
+    <string name="adb_logs_empty">Логи отсутствуют.</string>
     <string name="openconnect_edit_title">Изменить OpenConnect</string>
     <string name="openconnect_scope_note">Правила маршрутизации, гео-блокировка, группы политик, цепочки прокси и обход локальной сети не применяются к OpenConnect — маршруты задаёт шлюз.</string>
     <string name="openconnect_sni">TLS SNI (необязательно)</string>

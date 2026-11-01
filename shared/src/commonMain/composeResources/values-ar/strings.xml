@@ -962,6 +962,15 @@
     <string name="logs_copy">نسخ السجلات</string>
     <string name="logs_share">مشاركة السجلات</string>
     <string name="logs_clear">مسح السجلات</string>
+    <string name="adb_logs_title">سجل ADB وتقرير الأعطال</string>
+    <string name="adb_logs_sub">سجل النظام وأخطاء التعطل لاستكشاف المشكلات</string>
+    <string name="adb_logs_crash_detected">تم اكتشاف تعطل</string>
+    <string name="adb_logs_copy_crash">نسخ تقرير التعطل</string>
+    <string name="adb_logs_share">مشاركة سجل ADB</string>
+    <string name="adb_logs_copied">تم نسخ سجل ADB</string>
+    <string name="adb_logs_cleared">تم مسح سجل ADB</string>
+    <string name="adb_logs_refresh">تحديث</string>
+    <string name="adb_logs_empty">لا توجد سجلات.</string>
     <string name="openconnect_edit_title">تحرير OpenConnect</string>
     <string name="openconnect_scope_note">لا تنطبق قواعد التوجيه والحظر الجغرافي ومجموعات السياسات وسلاسل الوكيل وتجاوز الشبكة المحلية (LAN) على OpenConnect — حيث تتحكم البوابة في المسارات.</string>
     <string name="openconnect_sni">TLS SNI (اختياري)</string>

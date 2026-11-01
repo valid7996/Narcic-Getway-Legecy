@@ -56,6 +56,12 @@ interface Platform {
     /** The recent lines of the engine's own log. */
     fun rstaSpoofLog(): List<String> = emptyList()
 
+    val supportsAdbLog: Boolean get() = false
+    fun getAdbLog(): String = ""
+    fun getLastCrashReport(): String? = null
+    fun clearAdbLog() {}
+    fun shareAdbLog() {}
+
     val isComputer: Boolean get() = false
 
     fun cryptoAcceleration(): String = ""

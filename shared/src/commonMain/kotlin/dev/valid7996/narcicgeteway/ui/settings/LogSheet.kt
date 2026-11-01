@@ -127,6 +127,10 @@ fun LogSheet(onDismiss: () -> Unit) {
     var showAll by remember { mutableStateOf(false) }
     var level by remember { mutableStateOf(LogLevel.All) }
     var query by remember { mutableStateOf("") }
+    var showAdbSheet by remember { mutableStateOf(false) }
+    if (showAdbSheet) {
+        AdbLogSheet(onDismiss = { showAdbSheet = false })
+    }
 
     LaunchedEffect(activeKind) { showAll = activeKind == null; picked = null }
 
@@ -205,6 +209,13 @@ fun LogSheet(onDismiss: () -> Unit) {
                 }
                 FilledTonalButton(onClick = { LogBus.clear() }) {
                     Icon(painterResource(Res.drawable.ic_delete), stringResource(Res.string.logs_clear), Modifier.height(18.dp))
+                }
+                if (platform.supportsAdbLog) {
+                    FilledTonalButton(onClick = { showAdbSheet = true }) {
+                        Icon(painterResource(Res.drawable.ic_terminal), null, Modifier.height(18.dp))
+                        Spacer4()
+                        Text("ADB")
+                    }
                 }
             }
 

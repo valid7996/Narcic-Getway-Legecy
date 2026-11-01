@@ -1003,6 +1003,15 @@
     <string name="logs_copy">Copy logs</string>
     <string name="logs_share">Share logs</string>
     <string name="logs_clear">Clear logs</string>
+    <string name="adb_logs_title">ADB Log &amp; Crash Report</string>
+    <string name="adb_logs_sub">System logcat and crash traces for troubleshooting</string>
+    <string name="adb_logs_crash_detected">Crash Detected</string>
+    <string name="adb_logs_copy_crash">Copy Crash</string>
+    <string name="adb_logs_share">Share ADB Log</string>
+    <string name="adb_logs_copied">ADB log copied to clipboard</string>
+    <string name="adb_logs_cleared">ADB log cleared</string>
+    <string name="adb_logs_refresh">Refresh</string>
+    <string name="adb_logs_empty">No ADB logs available.</string>
     <string name="openconnect_edit_title">Edit OpenConnect</string>
     <string name="openconnect_scope_note">Routing rules, geo blocking, policy groups, proxy chains and LAN bypass do not apply to OpenConnect — the gateway controls the routes.</string>
     <string name="openconnect_sni">TLS SNI (optional)</string>
